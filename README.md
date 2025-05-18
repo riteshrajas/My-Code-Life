@@ -1,5 +1,6 @@
-<div align="center"><strong>Next.js 15 Admin Dashboard Template</strong></div>
-<div align="center">Built with the Next.js App Router</div>
+<div align="center"><strong>My Life Code App</strong></div>
+<div align="center">A minimal, dark, animated dashboard for living by three powerful rules.</div>
+<div align="center">Built with React, Vite, TailwindCSS, Supabase Auth + Passkeys, and Gemini Flash AI.</div>
 <br />
 <div align="center">
 <a href="https://next-admin-dash.vercel.app/">Demo</a>
@@ -8,57 +9,57 @@
 <span>
 </div>
 
-## Overview
+## Features
 
-This is a starter template using the following stack:
+- 🔒 Supabase Auth with Passkeys (WebAuthn) and fallback credentials
+- 🧠 Three foundational life rules (collapsible, with explanations)
+- 🤖 Gemini Advisor Chat (AI feedback on actions, always visible)
+- 🧑‍🤝‍🧑 Contacts & Notes (markdown, daily log, last 7 days, realtime sync)
+- 🏛️ Hierarchy Builder (AI-sorted, manual override, tree view)
+- ✍️ Daily Reflections (popup modal, tagged by rule)
+- 🎨 Minimal, dark, animated UI (Framer Motion)
+- 🔄 Supabase Realtime for live sync
 
-- Framework - [Next.js (App Router)](https://nextjs.org)
-- Language - [TypeScript](https://www.typescriptlang.org)
-- Auth - [Auth.js](https://authjs.dev)
-- Database - [Postgres](https://vercel.com/postgres)
-- Deployment - [Vercel](https://vercel.com/docs/concepts/next.js/overview)
-- Styling - [Tailwind CSS](https://tailwindcss.com)
-- Components - [Shadcn UI](https://ui.shadcn.com/)
-- Analytics - [Vercel Analytics](https://vercel.com/analytics)
-- Formatting - [Prettier](https://prettier.io)
+## Environment Setup
 
-This template uses the new Next.js App Router. This includes support for enhanced layouts, colocation of components, tests, and styles, component-level data fetching, and more.
+This project requires several environment variables to function properly. Create a `.env` file in the root directory with the following:
+
+```bash
+# Supabase Configuration
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+
+# Gemini AI API (if using the AI features)
+VITE_GEMINI_API_KEY=your-gemini-api-key
+```
+
+You can get these values by:
+1. Creating a Supabase project at [supabase.com](https://supabase.com)
+2. Going to Project Settings > API to find your URL and anon key
+3. For Gemini API, visit [ai.google.dev](https://ai.google.dev) to get an API key
 
 ## Getting Started
 
-During the deployment, Vercel will prompt you to create a new Postgres database. This will add the necessary environment variables to your project.
+1. Create a Supabase project and get your `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
+2. Copy `.env.example` to `.env` and fill in your Supabase credentials.
+3. Install dependencies:
 
-Inside the Vercel Postgres dashboard, create a table based on the schema defined in this repository.
+   ```
+   pnpm install
+   ```
 
-```
-CREATE TYPE status AS ENUM ('active', 'inactive', 'archived');
+4. Run the app:
 
-CREATE TABLE products (
-  id SERIAL PRIMARY KEY,
-  image_url TEXT NOT NULL,
-  name TEXT NOT NULL,
-  status status NOT NULL,
-  price NUMERIC(10, 2) NOT NULL,
-  stock INTEGER NOT NULL,
-  available_at TIMESTAMP NOT NULL
-);
-```
+   ```
+   pnpm dev
+   ```
 
-Then, uncomment `app/api/seed.ts` and hit `http://localhost:3000/api/seed` to seed the database with products.
+5. Login with Passkey or fallback credentials:
+   - Username: **Ritesh**
+   - Password: **riteshisawesome**
 
-Next, copy the `.env.example` file to `.env` and update the values. Follow the instructions in the `.env.example` file to set up your GitHub OAuth application.
+6. Explore the tabs: My Rules, Contacts & Notes, Hierarchy Builder.
 
-```bash
-npm i -g vercel
-vercel link
-vercel env pull
-```
+7. Use the Gemini Advisor chat for AI-powered ethical feedback.
 
-Finally, run the following commands to start the development server:
-
-```
-pnpm install
-pnpm dev
-```
-
-You should now be able to access the application at http://localhost:3000.
+---
