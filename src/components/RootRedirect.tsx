@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabaseClient';
+import supabase  from '@/lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 
 const RootRedirect: React.FC = () => {

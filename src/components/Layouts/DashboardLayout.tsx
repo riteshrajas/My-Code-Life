@@ -9,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { supabase } from '@/lib/supabaseClient';
+import supabase  from '@/lib/supabaseClient';
 import { motion } from 'framer-motion';
 import { DailyReflectionModal } from '@/components/DailyReflectionModal';
 import { UserMenu } from '@/components/UserMenu'; // Import UserMenu

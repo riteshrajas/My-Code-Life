@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabaseClient';
+import supabase  from '@/lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,

@@ -6,7 +6,7 @@ import {
   Clock, Calendar, CheckCircle, AlertTriangle, 
   BarChart2, Zap, Brain 
 } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
+import  supabase from '@/lib/supabaseClient';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';

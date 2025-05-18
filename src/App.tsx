@@ -5,7 +5,7 @@ import LoginPage from '@/pages/LoginPage';
 import DashboardPage from '@/pages/DashboardPage';
 import ContactsPage from '@/pages/ContactsPage';
 import HierarchyPage from '@/pages/HierarchyPage';
-import { supabase } from '@/lib/supabaseClient';
+import supabase  from '@/lib/supabaseClient';
 import { GeminiAdvisorPanel } from '@/components/gemini-advisor';
 import RootRedirect from '@/components/RootRedirect'; // Import the new component
 
