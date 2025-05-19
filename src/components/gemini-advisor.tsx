@@ -229,7 +229,7 @@ export function GeminiAdvisorPanel() {
         <Button 
           onClick={() => setIsOpen(true)} 
           className="rounded-full h-14 w-14 bg-gradient-to-r from-primary to-primary/90 shadow-lg shadow-primary/20"
-          aria-label="Open Gemini Advisor"
+          aria-label="Open Aethera Advisor"
         >
           <Bot className="h-7 w-7" />
         </Button>
@@ -262,7 +262,7 @@ export function GeminiAdvisorPanel() {
                 <Bot className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h2 className="font-semibold">Gemini Advisor</h2>
+                <h2 className="font-semibold">Aethera Advisor</h2>
                 <p className="text-xs text-muted-foreground">Personal guidance system</p>
               </div>
             </div>
@@ -315,7 +315,7 @@ export function GeminiAdvisorPanel() {
                     {msg.role === 'assistant' && !msg.content.startsWith('{') && (
                       <div className="flex items-center gap-2 mb-1 opacity-80">
                         <Bot className="h-4 w-4" />
-                        <span className="text-xs">Gemini Advisor</span>
+                        <span className="text-xs">Aethera Advisor</span>
                       </div>
                     )}
                     
