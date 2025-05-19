@@ -1,0 +1,24 @@
+/* Drag and drop styling */
+
+/* Fix for react-beautiful-dnd draggables */
+[data-rbd-draggable-context-id] {
+  user-select: none !important;
+}
+
+/* Improve dragging UX */
+[data-rbd-draggable-id] {
+  cursor: grab !important;
+}
+
+[data-rbd-draggable-id]:active {
+  cursor: grabbing !important;
+}
+
+/* Droppable area styling */
+[data-droppable-id] {
+  transition: background-color 0.2s ease;
+}
+
+[data-droppable-id].dropping {
+  background-color: rgba(99, 102, 241, 0.1);
+}

@@ -28,12 +28,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { 
   UserPlus, Upload, MoreHorizontal, Trash2, Edit, FileText, 
-  Phone, Mail, MapPin, CalendarClock, Download, Plus, Search
+  Phone, Mail, MapPin, CalendarClock, Download, Plus, Search,
+  BookOpen, Loader2
 } from 'lucide-react';
 import  supabase from '@/lib/supabaseClient';
 import Papa from 'papaparse';
 import { toast } from '@/hooks/use-toast';
 import { EmptyContactState } from '@/components/EmptyContactState';
+import { reformatStory } from '@/lib/storyFormatter';
+import "@/styles/story-highlights.css";
 
 // Define Contact type
 type Contact = {
@@ -48,6 +51,16 @@ type Contact = {
   last_interaction?: string;
   tags?: string[];
   user_id?: string;
+};
+
+// Define Story type
+type Story = {
+  id: string;  // Changed from optional to required
+  contact_id: string;
+  content: string;
+  formatted_content?: string;
+  created_at: string;
+  user_id: string;
 };
 
 const ContactsPage: React.FC = () => {
@@ -66,6 +79,16 @@ const ContactsPage: React.FC = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Story state
+  const [showStoryDialog, setShowStoryDialog] = useState(false);
+  const [currentContact, setCurrentContact] = useState<Contact | null>(null);
+  const [storyContent, setStoryContent] = useState('');
+  const [contactStories, setContactStories] = useState<Story[]>([]);
+  const [formattingStory, setFormattingStory] = useState(false);
+  const [selectedStory, setSelectedStory] = useState<Story | null>(null);
+  const [viewingFormattedStory, setViewingFormattedStory] = useState(false);
+  const [formattingStoryId, setFormattingStoryId] = useState<string | null>(null);
 
   // Fetch the current user along with contacts
   useEffect(() => {
@@ -493,6 +516,165 @@ const ContactsPage: React.FC = () => {
     document.getElementById('csvFileUpload')?.click();
   };
 
+  // Fetch stories for a contact
+  const fetchContactStories = async (contactId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('contact_stories')
+        .select('*')
+        .eq('contact_id', contactId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      setContactStories(data || []);
+    } catch (error) {
+      console.error('Error fetching contact stories:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load stories for this contact.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle opening the story dialog
+  const handleOpenStoryDialog = (contact: Contact) => {
+    setCurrentContact(contact);
+    setStoryContent('');
+    setSelectedStory(null);
+    setViewingFormattedStory(false);
+    fetchContactStories(contact.id);
+    setShowStoryDialog(true);
+  };
+
+  // Save a new story
+  const handleSaveStory = async () => {
+    try {
+      if (!storyContent.trim()) {
+        toast({
+          title: "Empty Story",
+          description: "Please enter some content for your story.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!currentContact || !currentUserId) {
+        toast({
+          title: "Error",
+          description: "Missing contact or user information.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const newStory = {
+        contact_id: currentContact.id,
+        content: storyContent,
+        created_at: new Date().toISOString(),
+        user_id: currentUserId
+      };
+
+      const { data, error } = await supabase
+        .from('contact_stories')
+        .insert([newStory])
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Story Saved",
+        description: "Your interaction has been recorded successfully.",
+      });
+
+      // Reset form and refresh stories
+      setStoryContent('');
+      fetchContactStories(currentContact.id);
+    } catch (error) {
+      console.error('Error saving story:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save your story. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Format story using AI (or simple format if you don't want to use AI)
+  const handleFormatStory = async (story: Story) => {
+    try {
+      setSelectedStory(story);
+      setFormattingStory(true);
+      setFormattingStoryId(story.id);
+      
+      // Since you don't want to actually format, we'll create a simple formatted version
+      // This is a fallback in case the AI formatting is not desired
+      let formattedContent;
+      
+      try {
+        // Try to use the reformatStory function but have a fallback
+        formattedContent = await reformatStory(story.content);
+      } catch (e) {
+        console.error("Error using AI formatting, using simple format instead:", e);
+        // Simple manual formatting as fallback
+        const today = new Date().toLocaleDateString('en-US', { 
+          year: 'numeric', month: 'long', day: 'numeric' 
+        });
+        
+        formattedContent = `## ${today}\n\n${story.content
+          .split('\n')
+          .filter(line => line.trim())
+          .join('\n\n')}`;
+      }
+      
+      // Save the formatted content to Supabase
+      const { error } = await supabase
+        .from('contact_stories')
+        .update({ formatted_content: formattedContent })
+        .eq('id', story.id);
+        
+      if (error) throw error;
+      
+      // Update local state
+      setContactStories(prev => 
+        prev.map(s => s.id === story.id ? {...s, formatted_content: formattedContent} : s)
+      );
+      
+      setViewingFormattedStory(true);
+      toast({
+        title: "Story Formatted",
+        description: "Your interaction has been reformatted successfully.",
+      });
+    } catch (error) {
+      console.error('Error formatting story:', error);
+      toast({
+        title: "Error",
+        description: "Failed to format your story. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setFormattingStory(false);
+      setFormattingStoryId(null);
+    }
+  };
+
+  // View a specific story
+  const handleViewStory = (story: Story) => {
+    setSelectedStory(story);
+    setViewingFormattedStory(!!story.formatted_content);
+  };
+
+  // Return to story list
+  const handleBackToStories = () => {
+    setSelectedStory(null);
+    setViewingFormattedStory(false);
+  };
+
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -659,7 +841,7 @@ const ContactsPage: React.FC = () => {
                     <TableHead className="hidden md:table-cell">Contact Info</TableHead>
                     <TableHead className="hidden lg:table-cell">Company</TableHead>
                     <TableHead className="hidden lg:table-cell">Added On</TableHead>
-                    <TableHead className="w-[100px]">Actions</TableHead>
+                    <TableHead className="w-[150px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -704,15 +886,24 @@ const ContactsPage: React.FC = () => {
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                onClick={() => handleOpenStoryDialog(contact)}
+                                title="Stories"
+                              >
+                                <BookOpen size={16} />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => {
                                   setEditingContact(contact);
                                   setShowEditDialog(true);
                                 }}
+                                title="Edit"
                               >
                                 <Edit size={16} />
                               </Button>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon">
+                                <Button variant="ghost" size="icon" title="Delete">
                                   <Trash2 size={16} className="text-red-500" />
                                 </Button>
                               </AlertDialogTrigger>
@@ -833,6 +1024,167 @@ const ContactsPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+      
+      {/* Contact Stories Dialog */}
+      <Dialog open={showStoryDialog} onOpenChange={setShowStoryDialog}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedStory ? (
+                <div className="flex items-center justify-between">
+                  <div>
+                    {viewingFormattedStory ? "Formatted Story" : "Story"} - {new Date(selectedStory.created_at).toLocaleDateString()} {new Date(selectedStory.created_at).toLocaleTimeString()}
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={handleBackToStories}>
+                    Back to Stories
+                  </Button>
+                </div>
+              ) : (
+                <>Stories with {currentContact?.name}</>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {!selectedStory ? "Record your interactions and conversations" : "View and format your interaction details"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {!selectedStory ? (
+            <>
+              <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="story-content">New Story - {new Date().toLocaleDateString()}</Label>
+                  <Textarea
+                    id="story-content"
+                    value={storyContent}
+                    onChange={(e) => setStoryContent(e.target.value)}
+                    placeholder={`Write about your interaction with ${currentContact?.name}. Include any details you want to remember like places, times, and key points.`}
+                    className="h-40"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveStory}>Save Story</Button>
+                </div>
+
+                <div className="space-y-4 mt-4">
+                  <h3 className="text-lg font-medium">Previous Stories</h3>
+                  {contactStories.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-6">
+                      No stories recorded yet. Start by adding your first interaction!
+                    </p>
+                  ) : (
+                    <div className="space-y-3 max-h-60 overflow-y-auto">
+                      {contactStories.map((story) => (
+                        <Card key={story.id} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <CardHeader className="p-4">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <CardTitle className="text-sm">
+                                  {new Date(story.created_at).toLocaleDateString()}
+                                </CardTitle>
+                                <CardDescription>
+                                  {story.content.substring(0, 100)}
+                                  {story.content.length > 100 ? '...' : ''}
+                                </CardDescription>
+                              </div>
+                              <div className="flex gap-2">
+                                {story.formatted_content ? (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => {
+                                      setSelectedStory(story);
+                                      setViewingFormattedStory(true);
+                                    }}
+                                  >
+                                    View Formatted
+                                  </Button>
+                                ) : (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => handleFormatStory(story)}
+                                    disabled={formattingStory}
+                                  >
+                                    {formattingStory && formattingStoryId === story.id ? (
+                                      <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Formatting...
+                                      </>
+                                    ) : (
+                                      "Format"
+                                    )}
+                                  </Button>
+                                )}
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => handleViewStory(story)}
+                                >
+                                  View Original
+                                </Button>
+                              </div>
+                            </div>
+                          </CardHeader>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="mt-2 space-y-6">
+              <div 
+                className="border p-4 rounded-md bg-muted/30 story-content"
+                dangerouslySetInnerHTML={{ 
+                  __html: viewingFormattedStory 
+                    ? selectedStory.formatted_content || '' 
+                    : selectedStory.content.split('\n').map(line => `<p>${line}</p>`).join('')
+                }}
+              />
+              
+              {!viewingFormattedStory && !selectedStory.formatted_content && (
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => handleFormatStory(selectedStory)}
+                    disabled={formattingStory}
+                  >
+                    {formattingStory ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Formatting...
+                      </>
+                    ) : (
+                      "Format Story"
+                    )}
+                  </Button>
+                </div>
+              )}
+              
+              {!viewingFormattedStory && selectedStory.formatted_content && (
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => setViewingFormattedStory(true)}
+                  >
+                    View Formatted
+                  </Button>
+                </div>
+              )}
+              
+              {viewingFormattedStory && (
+                <div className="flex justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setViewingFormattedStory(false)}
+                  >
+                    View Original
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
       
       {/* Hidden file input for CSV upload */}
       <input

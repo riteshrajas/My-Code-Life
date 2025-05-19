@@ -7,7 +7,7 @@ import ContactsPage from '@/pages/ContactsPage';
 import HierarchyPage from '@/pages/HierarchyPage';
 import supabase  from '@/lib/supabaseClient';
 import { GeminiAdvisorPanel } from '@/components/gemini-advisor';
-import RootRedirect from '@/components/RootRedirect'; // Import the new component
+import RootRedirect from '@/components/RootRedirect';
 
 // ProtectedRoute component to handle authentication
 const ProtectedRoute = () => {
@@ -40,6 +40,23 @@ const ProtectedRoute = () => {
 };
 
 function App() {
+  // Add this fix for react-beautiful-dnd in React 18
+  useEffect(() => {
+    // Fix for react-beautiful-dnd in React 18 StrictMode
+    const strictModeFixForReactBeautifulDnd = () => {
+      const draggables = document.querySelectorAll('[data-rbd-draggable-id]');
+      draggables.forEach((el) => {
+        // Force a reflow
+        void (el as HTMLElement).offsetHeight;
+      });
+    };
+    
+    // Run it on mount and window resize
+    strictModeFixForReactBeautifulDnd();
+    window.addEventListener('resize', strictModeFixForReactBeautifulDnd);
+    return () => window.removeEventListener('resize', strictModeFixForReactBeautifulDnd);
+  }, []);
+
   return (
     <Router>
       <div className="flex h-screen">

@@ -1,0 +1,42 @@
+/* Story highlights styling */
+
+/* Location highlights - light purple background with stronger purple text */
+.location-highlight {
+  background-color: rgba(205, 180, 219, 0.35);
+  color: #6b21a8;
+  font-weight: 500;
+  padding: 0 2px;
+  border-radius: 3px;
+  border-bottom: 1px dashed rgba(107, 33, 168, 0.3);
+  display: inline;
+}
+
+/* Time highlights - light orange/amber background with rust text */
+.time-highlight {
+  background-color: rgba(251, 191, 36, 0.2);
+  color: #b45309;
+  font-style: italic;
+  padding: 0 2px;
+  border-radius: 3px;
+  border-bottom: 1px dashed rgba(180, 83, 9, 0.3);
+  display: inline;
+}
+
+/* Story content container styling */
+.story-content {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+/* Story content heading */
+.story-content h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+/* Paragraph spacing */
+.story-content p {
+  margin-bottom: 1rem;
+}
