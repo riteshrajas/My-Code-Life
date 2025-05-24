@@ -1,0 +1,109 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Dancing+Script:wght@400;500;600;700&display=swap');
+
+.handwriting-font {
+  font-family: 'Caveat', 'Dancing Script', cursive;
+}
+
+.diary-editor {
+  font-family: 'Caveat', 'Dancing Script', cursive;
+  font-size: 18px;
+  line-height: 1.8;
+  color: #4a4a4a;
+}
+
+.vintage-paper {
+  background: linear-gradient(135deg, #fef7e6 0%, #fdf4e3 50%, #fbecd0 100%);
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(255,255,255,0.3) 2px, transparent 2px),
+    radial-gradient(circle at 75% 75%, rgba(255,255,255,0.2) 1px, transparent 1px);
+  background-size: 50px 50px, 30px 30px;
+  min-height: 100vh;
+}
+
+.notebook-page {
+  background: linear-gradient(to right, 
+    transparent 0,
+    transparent 80px,
+    #e8b4cb 80px,
+    #e8b4cb 82px,
+    transparent 82px
+  ), 
+  linear-gradient(to bottom,
+    transparent 0,
+    transparent 29px,
+    #c7ddef 29px,
+    #c7ddef 30px,
+    transparent 30px
+  );
+  background-size: 100% 100%, 100% 30px;
+  box-shadow: 
+    0 0 0 1px rgba(0,0,0,0.1),
+    0 4px 6px -1px rgba(0,0,0,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.4);
+}
+
+.diary-formatting-toolbar {
+  background: linear-gradient(135deg, #fff8f0 0%, #fef5ed 100%);
+  border-bottom: 2px solid #e8b4cb;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.formatting-button {
+  background: linear-gradient(135deg, #ffffff 0%, #faf8f5 100%);
+  border: 1px solid #d4a574;
+  color: #8b5a3c;
+  transition: all 0.2s ease;
+}
+
+.formatting-button:hover {
+  background: linear-gradient(135deg, #f5f1eb 0%, #ede8e0 100%);
+  border-color: #b8935f;
+  color: #704a2e;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.formatting-button.active {
+  background: linear-gradient(135deg, #d4a574 0%, #b8935f 100%);
+  color: white;
+  border-color: #a08050;
+}
+
+.highlight-yellow { background-color: #fff3cd; border-radius: 3px; padding: 2px 4px; }
+.highlight-green { background-color: #d4edda; border-radius: 3px; padding: 2px 4px; }
+.highlight-blue { background-color: #cce7ff; border-radius: 3px; padding: 2px 4px; }
+.highlight-pink { background-color: #f8d7da; border-radius: 3px; padding: 2px 4px; }
+.highlight-purple { background-color: #e2d9f3; border-radius: 3px; padding: 2px 4px; }
+.highlight-orange { background-color: #ffeaa7; border-radius: 3px; padding: 2px 4px; }
+
+.text-bold { font-weight: 600; }
+.text-underline { text-decoration: underline; text-decoration-color: #8b5a3c; }
+
+.diary-preview-overlay {
+  background: rgba(255, 248, 240, 0.95);
+  border: 2px solid #e8b4cb;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.color-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 8px;
+}
+
+.color-option {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 2px solid #d4a574;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.color-option:hover {
+  transform: scale(1.1);
+  border-color: #8b5a3c;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}

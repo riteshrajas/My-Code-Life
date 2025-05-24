@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, BookOpen, Calendar, Save, Plus, Edit2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, Calendar, Save, Plus, Edit2, PenTool } from 'lucide-react';
 import supabase from '@/lib/supabaseClient';
 import { toast } from '@/hooks/use-toast';
+import '../styles/notebook.css';
 
 interface DiaryEntry {
   id: string;
