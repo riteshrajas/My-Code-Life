@@ -5,6 +5,7 @@ import LoginPage from '@/pages/LoginPage';
 import DashboardPage from '@/pages/DashboardPage';
 import ContactsPage from '@/pages/ContactsPage';
 import HierarchyPage from '@/pages/HierarchyPage';
+import DailyDiaryPage from '@/pages/DailyDiaryPage';
 import supabase  from '@/lib/supabaseClient';
 import { GeminiAdvisorPanel } from '@/components/gemini-advisor';
 import RootRedirect from '@/components/RootRedirect';
@@ -62,9 +63,9 @@ function App() {
       <div className="flex h-screen">
         <div className="flex-1 flex flex-col overflow-hidden">
           <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route element={<ProtectedRoute />}>
+            <Route path="/login" element={<LoginPage />} />            <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<DashboardLayout><DashboardPage /></DashboardLayout>} />
+              <Route path="/daily-diary" element={<DashboardLayout><DailyDiaryPage /></DashboardLayout>} />
               <Route path="/dashboard/contacts" element={<DashboardLayout><ContactsPage /></DashboardLayout>} />
               <Route path="/dashboard/hierarchy" element={<DashboardLayout><HierarchyPage /></DashboardLayout>} />
             </Route>

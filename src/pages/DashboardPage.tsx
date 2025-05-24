@@ -1,16 +1,20 @@
 // filepath: p:\PERSONAL\Stage\stage\src\pages\DashboardPage.tsx
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom'; 
 import { 
   ChevronDown, ChevronUp, RefreshCw, 
   Clock, Calendar, CheckCircle, AlertTriangle, 
-  BarChart2, Zap, Brain 
+  BarChart2, Zap, Brain, BookOpen, Plus, Sparkles, MapPin
 } from 'lucide-react';
 import  supabase from '@/lib/supabaseClient';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { TaskCreationModal } from '@/components/TaskManager/TaskCreationModal';
+import { TaskDetailModal } from '@/components/TaskManager/TaskDetailModal';
+import { createTask, updateTask, deleteTask } from '@/lib/taskService';
 
 interface Rule {
   id: number;
@@ -21,11 +25,25 @@ interface Rule {
 }
 
 interface Activity {
-  id: number;
+  id: string;
   title: string;
+  description?: string;
   date: string;
   rule_id: number;
   completed: boolean;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  main_topic?: string;
+  sub_topic?: string;
+  location?: string | null;
+  due_date?: string | null;
+  due_time?: string | null;
+  is_holiday?: boolean;
+  holiday_name?: string | null;
+  gemini_analysis?: any;
+  created_at?: string;
+  updated_at?: string;
+  completed_at?: string | null;
 }
 
 const initialRules: Rule[] = [
@@ -52,52 +70,143 @@ const initialRules: Rule[] = [
   }
 ];
 
-const mockActivities: Activity[] = [
-  { id: 1, title: "Debugged sensor integration issue", date: "2025-05-17", rule_id: 1, completed: true },
-  { id: 2, title: "Documented code for team handover", date: "2025-05-16", rule_id: 2, completed: true },
-  { id: 3, title: "Learned new animation framework", date: "2025-05-18", rule_id: 3, completed: false },
-  { id: 4, title: "Submitted research findings", date: "2025-05-15", rule_id: 1, completed: true },
-  { id: 5, title: "Communicated project delay to stakeholders", date: "2025-05-14", rule_id: 2, completed: true },
-  { id: 6, title: "Tackled complex algorithm challenge", date: "2025-05-13", rule_id: 3, completed: true }
-];
-
 const DashboardPage = () => {
   const [expandedRule, setExpandedRule] = useState<number | null>(null);
   const [rules, setRules] = useState<Rule[]>(initialRules);
-  const [activities, setActivities] = useState<Activity[]>(mockActivities);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [activeTab, setActiveTab] = useState('today');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showTaskDetail, setShowTaskDetail] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Activity | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalCompleted: 0,
     ruleDistribution: [0, 0, 0]
   });
 
   useEffect(() => {
-    // In a real app, fetch rules and activities from Supabase
-    // For now, we'll use the mock data
+    const fetchUserAndActivities = async () => {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+        await fetchActivities(user.id);
+      } else {
+        setLoading(false);
+      }
+    };
     
-    // Calculate statistics
-    const completed = activities.filter(a => a.completed).length;
-    const distribution = [1, 2, 3].map(ruleId => 
-      activities.filter(a => a.rule_id === ruleId).length
-    );
-    
-    setStats({
-      totalCompleted: completed,
-      ruleDistribution: distribution
-    });
-  }, [activities]);
+    fetchUserAndActivities();
+  }, []);
+
+  const fetchActivities = async (userId: string) => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      // Convert tasks to activities format
+      const activitiesData: Activity[] = (data || []).map(task => ({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        date: task.due_date || task.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+        rule_id: task.rule_id || 2,
+        completed: task.status === 'completed',
+        status: task.status,
+        priority: task.priority,
+        main_topic: task.main_topic,
+        sub_topic: task.sub_topic,
+        location: task.location,
+        due_date: task.due_date,
+        due_time: task.due_time,
+        is_holiday: task.is_holiday,
+        holiday_name: task.holiday_name,
+        gemini_analysis: task.gemini_analysis,
+        created_at: task.created_at,
+        updated_at: task.updated_at,
+        completed_at: task.completed_at
+      }));
+
+      setActivities(activitiesData);
+      
+      // Calculate statistics
+      const completed = activitiesData.filter(a => a.completed).length;
+      const distribution = [1, 2, 3].map(ruleId => 
+        activitiesData.filter(a => a.rule_id === ruleId).length
+      );
+      
+      setStats({
+        totalCompleted: completed,
+        ruleDistribution: distribution
+      });
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleRuleExpansion = (ruleId: number) => {
     setExpandedRule(expandedRule === ruleId ? null : ruleId);
   };
 
-  const toggleActivityCompletion = (activityId: number) => {
-    setActivities(activities.map(activity => 
-      activity.id === activityId 
-        ? { ...activity, completed: !activity.completed } 
-        : activity
-    ));
+  const toggleActivityCompletion = async (activityId: string) => {
+    try {
+      const activity = activities.find(a => a.id === activityId);
+      if (!activity) return;
+
+      const newStatus = activity.completed ? 'pending' : 'completed';
+      const completedAt = newStatus === 'completed' ? new Date().toISOString() : null;
+
+      // Update in Supabase
+      const { error } = await supabase
+        .from('tasks')
+        .update({ 
+          status: newStatus,
+          completed_at: completedAt
+        })
+        .eq('id', activityId)
+        .eq('user_id', currentUserId);
+
+      if (error) {
+        throw error;
+      }
+
+      // Update local state
+      setActivities(activities.map(a => 
+        a.id === activityId 
+          ? { ...a, completed: !a.completed, status: newStatus } 
+          : a
+      ));
+
+      // Recalculate stats
+      const updatedActivities = activities.map(a => 
+        a.id === activityId 
+          ? { ...a, completed: !a.completed } 
+          : a
+      );
+      const completed = updatedActivities.filter(a => a.completed).length;
+      const distribution = [1, 2, 3].map(ruleId => 
+        updatedActivities.filter(a => a.rule_id === ruleId).length
+      );
+      
+      setStats({
+        totalCompleted: completed,
+        ruleDistribution: distribution
+      });
+    } catch (error) {
+      console.error('Error updating activity:', error);
+    }
   };
 
   const getFilteredActivities = () => {
@@ -122,6 +231,73 @@ const DashboardPage = () => {
       case 2: return "emerald";
       case 3: return "violet";
       default: return "gray";
+    }
+  };
+
+  const handleTaskCreate = async (taskData: any) => {
+    try {
+      const newTask = await createTask(taskData);
+      if (newTask && currentUserId) {
+        // Refresh activities from database to ensure we have the latest data
+        await fetchActivities(currentUserId);
+        setShowTaskModal(false);
+      }
+    } catch (error) {
+      console.error('Error creating task:', error);
+    }
+  };
+
+  const handleTaskClick = (activity: Activity) => {
+    setSelectedTask(activity);
+    setShowTaskDetail(true);
+  };
+
+  const handleTaskStatusChange = async (taskId: string, status: 'pending' | 'in_progress' | 'completed' | 'cancelled') => {
+    try {
+      const completedAt = status === 'completed' ? new Date().toISOString() : null;
+      
+      // Update in Supabase
+      const updatedTask = await updateTask(taskId, { 
+        status,
+        completed_at: completedAt
+      });
+
+      if (updatedTask && currentUserId) {
+        // Refresh activities from database
+        await fetchActivities(currentUserId);
+        
+        // Update the selected task if it's the one we just modified
+        if (selectedTask && selectedTask.id === taskId) {
+          setSelectedTask({
+            ...selectedTask,
+            status: status,
+            completed: status === 'completed',
+            completed_at: completedAt
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error updating task status:', error);
+    }
+  };
+
+  const handleTaskEdit = (task: Activity) => {
+    // TODO: Implement edit functionality
+    console.log('Edit task:', task);
+    setShowTaskDetail(false);
+    // You could open the TaskCreationModal in edit mode here
+  };
+
+  const handleTaskDelete = async (taskId: string) => {
+    try {
+      await deleteTask(taskId);
+      if (currentUserId) {
+        await fetchActivities(currentUserId);
+        setShowTaskDetail(false);
+        setSelectedTask(null);
+      }
+    } catch (error) {
+      console.error('Error deleting task:', error);
     }
   };
 
@@ -198,6 +374,48 @@ const DashboardPage = () => {
                 <Clock className="h-5 w-5 mr-2 text-blue-500" />
                 {new Date().toLocaleDateString()}
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Daily Diary & Smart Task Creator */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
+                <BookOpen className="h-5 w-5 mr-2 text-purple-500" />
+                Daily Diary
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-start">
+              <p className="text-sm text-muted-foreground mb-4">
+                Write your daily reflections or look at past entries.
+              </p>
+              <Button asChild className="w-full mt-auto">
+                <Link to="/daily-diary">Open Diary</Link>
+              </Button>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
+                <Sparkles className="h-5 w-5 mr-2 text-emerald-500" />
+                Smart Task Creator
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-start">
+              <p className="text-sm text-muted-foreground mb-4">
+                Tell me what you want to do and I'll break it down into smart tasks with dates, locations, and priorities.
+              </p>
+              <Button 
+                onClick={() => setShowTaskModal(true)}
+                className="w-full mt-auto"
+                variant="outline"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Activity
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -311,43 +529,82 @@ const DashboardPage = () => {
                       {getFilteredActivities().map((activity) => (
                         <li 
                           key={activity.id} 
-                          className={`p-3 rounded-md border flex items-center justify-between ${
+                          className={`p-3 sm:p-4 rounded-md border hover:bg-muted/50 active:bg-muted/70 transition-colors cursor-pointer ${
                             activity.completed ? 'bg-muted/30' : 'bg-white dark:bg-gray-800'
                           }`}
+                          onClick={() => handleTaskClick(activity)}
                         >
-                          <div className="flex items-center">
-                            <div 
-                              className="cursor-pointer" 
-                              onClick={() => toggleActivityCompletion(activity.id)}
-                            >
-                              {activity.completed ? (
-                                <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                              ) : (
-                                <div className="h-5 w-5 rounded-full border-2 mr-3" />
-                              )}
-                            </div>
-                            <div>
-                              <p className={`font-medium ${activity.completed ? 'line-through text-muted-foreground' : ''}`}>
-                                {activity.title}
-                              </p>
-                              <div className="flex items-center text-xs text-muted-foreground mt-1">
-                                <Calendar className="h-3 w-3 mr-1" />
-                                <span>
-                                  {new Date(activity.date).toLocaleDateString()}
-                                </span>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                            <div className="flex items-start sm:items-center flex-1 gap-3">
+                              <div 
+                                className="cursor-pointer hover:scale-110 active:scale-95 transition-transform flex-shrink-0 mt-0.5 sm:mt-0" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleActivityCompletion(activity.id);
+                                }}
+                              >
+                                {activity.completed ? (
+                                  <CheckCircle className="h-5 w-5 text-green-500" />
+                                ) : (
+                                  <div className="h-5 w-5 rounded-full border-2 hover:border-green-500 transition-colors" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`font-medium text-sm sm:text-base break-words ${activity.completed ? 'line-through text-muted-foreground' : ''}`}>
+                                  {activity.title}
+                                </p>
+                                <div className="flex flex-wrap items-center text-xs text-muted-foreground mt-1 gap-2 sm:gap-3">
+                                  <div className="flex items-center">
+                                    <Calendar className="h-3 w-3 mr-1 flex-shrink-0" />
+                                    <span className="whitespace-nowrap">
+                                      {new Date(activity.date).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                  {activity.location && (
+                                    <div className="flex items-center max-w-32 sm:max-w-none">
+                                      <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                                      <span className="truncate">
+                                        {activity.location}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {activity.due_time && (
+                                    <div className="flex items-center">
+                                      <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
+                                      <span className="whitespace-nowrap">
+                                        {activity.due_time}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
+                            <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-2 sm:mt-0">
+                              {activity.priority && activity.priority !== 'medium' && (
+                                <Badge 
+                                  variant="outline"
+                                  className={`text-xs flex-shrink-0 ${
+                                    activity.priority === 'urgent' ? 'border-red-500 text-red-500' :
+                                    activity.priority === 'high' ? 'border-orange-500 text-orange-500' :
+                                    activity.priority === 'low' ? 'border-green-500 text-green-500' :
+                                    'border-gray-500 text-gray-500'
+                                  }`}
+                                >
+                                  {activity.priority.toUpperCase()}
+                                </Badge>
+                              )}
+                              <Badge 
+                                variant="outline"
+                                className={`text-xs flex-shrink-0 border-${getRuleColor(activity.rule_id)}-500 text-${getRuleColor(activity.rule_id)}-500`}
+                                style={{
+                                  borderColor: activity.rule_id === 1 ? '#3b82f6' : activity.rule_id === 2 ? '#10b981' : '#8b5cf6',
+                                  color: activity.rule_id === 1 ? '#3b82f6' : activity.rule_id === 2 ? '#10b981' : '#8b5cf6'
+                                }}
+                              >
+                                Rule {activity.rule_id}
+                              </Badge>
+                            </div>
                           </div>
-                          <Badge 
-                            variant="outline"
-                            className={`text-xs ml-2 border-${getRuleColor(activity.rule_id)}-500 text-${getRuleColor(activity.rule_id)}-500`}
-                            style={{
-                              borderColor: activity.rule_id === 1 ? '#3b82f6' : activity.rule_id === 2 ? '#10b981' : '#8b5cf6',
-                              color: activity.rule_id === 1 ? '#3b82f6' : activity.rule_id === 2 ? '#10b981' : '#8b5cf6'
-                            }}
-                          >
-                            Rule {activity.rule_id}
-                          </Badge>
                         </li>
                       ))}
                     </ul>
@@ -359,6 +616,23 @@ const DashboardPage = () => {
         </div>
         </div>
       </div>
+
+      {/* Task Creation Modal */}
+      <TaskCreationModal 
+        open={showTaskModal}
+        onOpenChange={setShowTaskModal}
+        onTaskCreate={handleTaskCreate}
+      />
+
+      {/* Task Detail Modal */}
+      <TaskDetailModal 
+        open={showTaskDetail}
+        onOpenChange={setShowTaskDetail}
+        task={selectedTask}
+        onStatusChange={handleTaskStatusChange}
+        onEdit={handleTaskEdit}
+        onDelete={handleTaskDelete}
+      />
     </div>
   );
 };

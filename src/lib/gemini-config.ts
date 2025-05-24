@@ -188,8 +188,138 @@ Respond ONLY with a properly formatted JSON object.
   }
 }
 
-// Function to have a continuous chat with context memory
-export class GeminiAdvisor {
+// Function to analyze task input using Gemini AI with enhanced capabilities
+export async function analyzeTaskWithGemini(taskInput: string): Promise<any> {
+  const model = getGeminiModel();
+  if (!model) return null;
+  
+  try {
+    const currentDate = new Date().toISOString().split('T')[0];
+    const currentYear = new Date().getFullYear();
+    
+    const systemPrompt = `
+You are an AI task analyzer that helps break down user input into structured tasks with smart date and location detection.
+
+Current context:
+- Today's date: ${currentDate}
+- Current year: ${currentYear}
+
+Analyze the following task input and extract:
+1. Main topic (the primary category/area)
+2. Sub topic (more specific category)  
+3. Title (concise task title)
+4. Description (detailed description)
+5. Location (if specified, including cities, venues, addresses)
+6. Date (if specified, including holiday recognition and relative dates)
+7. Time (if specified)
+8. Priority level (low, medium, high, urgent)
+9. Rule alignment (which of the 3 life rules this aligns with most)
+10. Is this related to a holiday?
+11. Holiday name (if applicable)
+12. Steps (if multi-step process)
+
+HOLIDAY RECOGNITION:
+- Independence Day: July 4th
+- Christmas: December 25th  
+- New Year's Day: January 1st
+- Thanksgiving: 4th Thursday in November
+- Memorial Day: Last Monday in May
+- Labor Day: First Monday in September
+- Halloween: October 31st
+- Valentine's Day: February 14th
+- And other major holidays
+
+DATE PARSING:
+- "Independence Day" → "2025-07-04"
+- "Christmas" → "2025-12-25"
+- "next Monday" → calculate actual date
+- "tomorrow" → calculate actual date
+- "this weekend" → calculate Saturday date
+
+LOCATION EXTRACTION:
+- Extract any mentioned places, cities, venues, golf courses, restaurants, etc.
+- Include full location names when mentioned
+
+MULTI-STEP DETECTION:
+- Break down complex tasks into logical steps
+- For example: "Plan a golf trip" → ["Research golf courses", "Book tee times", "Arrange accommodation", "Pack equipment"]
+
+Respond ONLY with a properly formatted JSON object:
+{
+  "title": "Extracted task title",
+  "description": "Detailed description of what needs to be done",
+  "mainTopic": "Primary category (e.g., Sports, Work, Personal, Health, Travel)",
+  "subTopic": "Specific subcategory (e.g., Golf, Programming, Exercise, Vacation)",
+  "location": "Location if mentioned (or null)",
+  "dueDate": "YYYY-MM-DD format if date mentioned (or null)",
+  "dueTime": "HH:MM format if time mentioned (or null)",
+  "priority": "low/medium/high/urgent",
+  "ruleAlignment": 1, 2, or 3 based on which life rule it aligns with most,
+  "isHoliday": true/false,
+  "holidayName": "Name of holiday if applicable (or null)",
+  "steps": ["Step 1", "Step 2", ...] if multi-step process, or single item array for simple tasks
+}
+
+Life Rules for alignment:
+1. Seek Truth with Relentless Curiosity - learning, research, investigation, studying
+2. Live with Uncompromising Integrity - ethical actions, meaningful work, commitments
+3. Grow Through Challenges as an Antifragile System - difficult tasks, growth opportunities, challenges
+`;
+
+    const prompt = `Analyze this task input: "${taskInput}"`;
+
+    const result = await model.generateContent({
+      contents: [
+        { role: 'user', parts: [{ text: systemPrompt }] },
+        { role: 'model', parts: [{ text: 'I understand and will analyze tasks according to these instructions.' }] },
+        { role: 'user', parts: [{ text: prompt }] }
+      ],
+      generationConfig: {
+        ...generationConfig
+      }
+    });
+    
+    const response = result.response;
+    const text = response.text();
+    
+    try {
+      // Try to parse JSON directly
+      const parsed = JSON.parse(text);
+      return parsed;
+    } catch (directParseError) {
+      // Try to extract JSON from markdown code blocks
+      const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || 
+                        text.match(/```\n([\s\S]*?)\n```/) ||
+                        text.match(/{[\s\S]*?}/);
+                        
+      if (jsonMatch) {
+        const jsonContent = jsonMatch[1] || jsonMatch[0];
+        return JSON.parse(jsonContent);
+      }
+      
+      throw new Error("Could not parse JSON from response");
+    }
+  } catch (error) {
+    console.error('Error analyzing task with Gemini:', error);
+    return {
+      title: taskInput.slice(0, 50),
+      description: taskInput,
+      mainTopic: "General",
+      subTopic: "Task",
+      location: null,
+      dueDate: null,
+      dueTime: null,
+      priority: "medium",
+      ruleAlignment: 2,
+      isHoliday: false,
+      holidayName: null,
+      steps: [taskInput]
+    };
+  }
+}
+
+// Chat session class for ongoing conversations
+export class GeminiChatSession {
   private chatSession: ChatSession | null = null;
   private lifeRules: string;
   
