@@ -9,6 +9,7 @@ import DailyDiaryPage from '@/pages/DailyDiaryPage';
 import supabase  from '@/lib/supabaseClient';
 import { GeminiAdvisorPanel } from '@/components/gemini-advisor';
 import RootRedirect from '@/components/RootRedirect';
+import CalendarTimelinePage from '@/pages/CalendarTimelinePage';
 
 // ProtectedRoute component to handle authentication
 const ProtectedRoute = () => {
@@ -63,11 +64,13 @@ function App() {
       <div className="flex h-screen">
         <div className="flex-1 flex flex-col overflow-hidden">
           <Routes>
-            <Route path="/login" element={<LoginPage />} />            <Route element={<ProtectedRoute />}>
+            <Route path="/login" element={<LoginPage />} />
+            <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<DashboardLayout><DashboardPage /></DashboardLayout>} />
-              <Route path="/daily-diary" element={<DashboardLayout><DailyDiaryPage /></DashboardLayout>} />
-              <Route path="/dashboard/contacts" element={<DashboardLayout><ContactsPage /></DashboardLayout>} />
-              <Route path="/dashboard/hierarchy" element={<DashboardLayout><HierarchyPage /></DashboardLayout>} />
+              <Route path="/dashboard/daily-diary" element={<DashboardLayout><DailyDiaryPage /></DashboardLayout>} />
+              <Route path="/contacts" element={<DashboardLayout><ContactsPage /></DashboardLayout>} />
+              <Route path="/hierarchy" element={<DashboardLayout><HierarchyPage /></DashboardLayout>} />
+              <Route path="/calendar-timeline" element={<DashboardLayout><CalendarTimelinePage /></DashboardLayout>} />
             </Route>
             {/* Default route: uses RootRedirect to determine where to go */}
             <Route 

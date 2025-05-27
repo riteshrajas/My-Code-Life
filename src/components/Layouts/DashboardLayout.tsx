@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom'; 
 import { 
   Book, Users, LibrarySquare, PanelLeft, 
-  Settings, LogOut 
+  Settings, LogOut, Calendar 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -74,8 +74,10 @@ export default function DashboardLayout({
   }, [user]);
 
   const getActiveTab = () => {
-    if (location.pathname.includes('/dashboard/contacts')) return 'contacts';
-    if (location.pathname.includes('/dashboard/hierarchy')) return 'hierarchy';
+    if (location.pathname.includes('/contacts')) return 'contacts';
+    if (location.pathname.includes('/hierarchy')) return 'hierarchy';
+    if (location.pathname.includes('/journal')) return 'journal';
+    if (location.pathname.includes('/dashboard')) return 'dashboard';
     return 'rules';
   };
   
@@ -110,13 +112,17 @@ export default function DashboardLayout({
                   <Book className="h-5 w-5" />
                   <span>My Rules</span>
                 </Link>
-                <Link to="/dashboard/contacts" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+                <Link to="/contacts" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
                   <Users className="h-5 w-5" />
                   <span>Contacts & Notes</span>
                 </Link>
-                <Link to="/dashboard/hierarchy" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+                <Link to="/hierarchy" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
                   <LibrarySquare className="h-5 w-5" />
                   <span>Hierarchy Builder</span>
+                </Link>
+                <Link to="/calendar-timeline" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+                  <Calendar className="h-5 w-5" />
+                  <span>Calendar & Timeline</span>
                 </Link>
               </div>
               <div className="border-t pt-4">
@@ -138,11 +144,14 @@ export default function DashboardLayout({
             <Link to="/dashboard" className={`text-sm ${location.pathname === '/dashboard' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
               My Rules
             </Link>
-            <Link to="/dashboard/contacts" className={`text-sm ${location.pathname.includes('/dashboard/contacts') ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+            <Link to="/contacts" className={`text-sm ${location.pathname.includes('/contacts') ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
               Contacts & Notes
             </Link>
-            <Link to="/dashboard/hierarchy" className={`text-sm ${location.pathname.includes('/dashboard/hierarchy') ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+            <Link to="/hierarchy" className={`text-sm ${location.pathname.includes('/hierarchy') ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
               Hierarchy Builder
+            </Link>
+            <Link to="/calendar-timeline" className={`text-sm ${location.pathname.includes('/calendar-timeline') ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              Calendar & Timeline
             </Link>
           </nav>
         </div>
@@ -163,20 +172,27 @@ export default function DashboardLayout({
               </Link>
             </TabsTrigger>
             <TabsTrigger value="contacts" asChild>
-              <Link to="/dashboard/contacts" className="flex flex-col items-center py-2">
+              <Link to="/contacts" className="flex flex-col items-center py-2">
                 <Users className="h-4 w-4 mb-1" />
                 <span className="text-xs">Contacts</span>
               </Link>
             </TabsTrigger>
             <TabsTrigger value="hierarchy" asChild>
-              <Link to="/dashboard/hierarchy" className="flex flex-col items-center py-2">
+              <Link to="/hierarchy" className="flex flex-col items-center py-2">
                 <LibrarySquare className="h-4 w-4 mb-1" />
                 <span className="text-xs">Hierarchy</span>
               </Link>
             </TabsTrigger>
+            <TabsTrigger value="calendar-timeline" asChild>
+              <Link to="/calendar-timeline" className="flex flex-col items-center py-2">
+                <Calendar className="h-4 w-4 mb-1" />
+                <span className="text-xs">Calendar & Timeline</span>
+              </Link>
+            </TabsTrigger>
           </TabsList>
         </Tabs>
-      </div>      <motion.main 
+      </div>
+      <motion.main
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}

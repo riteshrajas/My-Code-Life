@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom'; 
 import { 
   ChevronDown, ChevronUp, RefreshCw, 
-  Clock, Calendar, CheckCircle, AlertTriangle, 
+  Clock, Calendar as CalendarIcon, CheckCircle, AlertTriangle, 
   BarChart2, Zap, Brain, BookOpen, Plus, Sparkles, MapPin
 } from 'lucide-react';
 import  supabase from '@/lib/supabaseClient';
@@ -84,6 +84,14 @@ const DashboardPage = () => {
     totalCompleted: 0,
     ruleDistribution: [0, 0, 0]
   });
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  type EventItem = {
+    date: string;
+    type: string;
+    content: string;
+  };
+  
+  const [events, setEvents] = useState<EventItem[]>([]);
 
   useEffect(() => {
     const fetchUserAndActivities = async () => {
@@ -98,6 +106,38 @@ const DashboardPage = () => {
     };
     
     fetchUserAndActivities();
+  }, []);
+
+  useEffect(() => {
+    // Fetch diary entries, tasks, and notes from the backend
+    const fetchEvents = async () => {
+      const diaryEntries = await fetch('/api/diary-entries').then(res => res.json());
+      const tasks = await fetch('/api/tasks').then(res => res.json());
+      const notes = await fetch('/api/notes').then(res => res.json());
+
+      // Combine all events
+      const combinedEvents = [
+        ...diaryEntries.map((entry: { entry_date: any; content: any; }) => ({
+          date: entry.entry_date,
+          type: 'Diary Entry',
+          content: entry.content
+        })),
+        ...tasks.map((task: { due_date: any; title: any; }) => ({
+          date: task.due_date,
+          type: 'Task',
+          content: task.title
+        })),
+        ...notes.map((note: { date: any; content: any; }) => ({
+          date: note.date,
+          type: 'Note',
+          content: note.content
+        }))
+      ];
+
+      setEvents(combinedEvents);
+    };
+
+    fetchEvents();
   }, []);
 
   const fetchActivities = async (userId: string) => {
@@ -301,6 +341,29 @@ const DashboardPage = () => {
     }
   };
 
+
+
+  const handleDateClick = (
+    value: Date | Date[] | [Date | null, Date | null] | null,
+    event: React.MouseEvent<HTMLButtonElement, MouseEvent>
+  ) => {
+    // Value can be Date, Date[], [Date | null, Date | null], or null
+    let date: Date | null = null;
+    if (value instanceof Date) {
+      date = value;
+    } else if (Array.isArray(value)) {
+      if (value[0] instanceof Date) {
+        date = value[0] as Date;
+      }
+    }
+    if (date) {
+      setSelectedDate(date);
+      // Filter events for the selected date
+      const eventsForDate = events.filter(event => event.date === date!.toISOString().split('T')[0]);
+      console.log('Events for selected date:', eventsForDate);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 overflow-auto pb-20">
@@ -392,7 +455,7 @@ const DashboardPage = () => {
                 Write your daily reflections or look at past entries.
               </p>
               <Button asChild className="w-full mt-auto">
-                <Link to="/daily-diary">Open Diary</Link>
+                <Link to="/dashboard/daily-diary">Open Diary</Link>
               </Button>
             </CardContent>
           </Card>
@@ -515,7 +578,7 @@ const DashboardPage = () => {
                   {getFilteredActivities().length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                        <Calendar className="h-6 w-6" />
+                        <CalendarIcon className="h-6 w-6" />
                       </div>
                       <h3 className="font-medium mb-1">No activities found</h3>
                       <p className="text-sm">
@@ -555,7 +618,7 @@ const DashboardPage = () => {
                                 </p>
                                 <div className="flex flex-wrap items-center text-xs text-muted-foreground mt-1 gap-2 sm:gap-3">
                                   <div className="flex items-center">
-                                    <Calendar className="h-3 w-3 mr-1 flex-shrink-0" />
+                                
                                     <span className="whitespace-nowrap">
                                       {new Date(activity.date).toLocaleDateString()}
                                     </span>
@@ -614,10 +677,10 @@ const DashboardPage = () => {
             </TabsContent>
           </Tabs>
         </div>
+
         </div>
       </div>
-
-      {/* Task Creation Modal */}
+      Task Creation Modal
       <TaskCreationModal 
         open={showTaskModal}
         onOpenChange={setShowTaskModal}

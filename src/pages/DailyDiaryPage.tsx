@@ -3,9 +3,12 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, BookOpen, Calendar, Save, Plus, Edit2, PenTool } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ArrowLeft, BookOpen, Calendar, Save, Plus, Edit2, PenTool, Mic, Sparkles } from 'lucide-react';
 import supabase from '@/lib/supabaseClient';
 import { toast } from '@/hooks/use-toast';
+import VoiceInput from '@/components/VoiceInput';
+import { analyzeVoiceTranscript } from '@/lib/voiceAnalysis';
 import '../styles/notebook.css';
 
 interface DiaryEntry {
@@ -25,6 +28,9 @@ const DailyDiaryPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [editingEntry, setEditingEntry] = useState<DiaryEntry | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'write' | 'voice'>('write');
+  const [voiceAnalysis, setVoiceAnalysis] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Get current user
   useEffect(() => {
@@ -165,6 +171,44 @@ const DailyDiaryPage = () => {
   const handleEntryClick = (entry: DiaryEntry) => {
     setSelectedDate(entry.entry_date);
   };
+
+  const handleVoiceTranscript = async (transcript: string) => {
+    // Add the transcript to the current entry
+    setCurrentEntry(prev => {
+      const newContent = prev ? prev + '\n\n' + transcript : transcript;
+      return newContent;
+    });
+    
+    // Switch to write tab to show the result
+    setActiveTab('write');
+    
+    // Analyze the transcript with AI
+    setIsAnalyzing(true);
+    try {
+      const analysis = await analyzeVoiceTranscript(transcript, 'diary');
+      setVoiceAnalysis(analysis);
+      
+      toast({
+        title: 'Voice Analysis Complete',
+        description: `Sentiment: ${analysis.sentiment}. Found ${analysis.actionItems.length} action items.`,
+      });
+    } catch (error) {
+      console.error('Error analyzing voice transcript:', error);
+      toast({
+        title: 'Analysis Error',
+        description: 'Could not analyze voice input, but transcript was saved.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleAIAnalysis = (analysis: string) => {
+    // This could be used for additional AI insights
+    console.log('AI Analysis:', analysis);
+  };
+
   const formatDate = (dateString: string) => {
     const today = new Date().toISOString().split('T')[0];
     const date = new Date(dateString);
@@ -201,13 +245,12 @@ const DailyDiaryPage = () => {
           <BookOpen className="h-8 w-8 mr-3 text-purple-500" />
           Daily Diary
         </h1>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
+      </div>      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
         {/* Editor Section */}
         <div className="lg:col-span-2 flex flex-col">
           <Card className="flex-1 flex flex-col shadow-lg">
-            <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-blue-50">              <div className="flex justify-between items-center">
+            <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-blue-50">
+              <div className="flex justify-between items-center">
                 <CardTitle className="text-xl">
                   {selectedDate === new Date().toISOString().split('T')[0] 
                     ? "Today's Entry" 
@@ -224,32 +267,84 @@ const DailyDiaryPage = () => {
                   />
                 </div>
               </div>
+              
+              {/* Input Method Tabs */}
+              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'write' | 'voice')} className="mt-4">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="write" className="flex items-center gap-2">
+                    <PenTool className="h-4 w-4" />
+                    Write
+                  </TabsTrigger>
+                  <TabsTrigger value="voice" className="flex items-center gap-2">
+                    <Mic className="h-4 w-4" />
+                    Voice Input
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
             </CardHeader>
+            
             <CardContent className="flex-1 flex flex-col p-6">
-              <Textarea
-                placeholder="What's on your mind today? Share your thoughts, experiences, and reflections..."
-                value={currentEntry}
-                onChange={(e) => setCurrentEntry(e.target.value)}
-                className="flex-1 text-base resize-none border-none shadow-none focus:ring-0 p-0 min-h-[400px]"
-                style={{ 
-                  lineHeight: '1.6',
-                  fontFamily: 'ui-serif, Georgia, Cambria, serif'
-                }}
-              />
-              <div className="flex justify-between items-center mt-6 pt-4 border-t">
-                <div className="text-sm text-muted-foreground">
-                  {currentEntry.length} characters
-                </div>
-                <Button 
-                  onClick={handleSaveEntry} 
-                  disabled={isSaving || !currentEntry.trim()} 
-                  className="px-6"
-                  size="lg"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {isSaving ? 'Saving...' : editingEntry ? 'Update Entry' : 'Save Entry'}
-                </Button>
-              </div>
+              <Tabs value={activeTab} className="flex-1 flex flex-col">
+                <TabsContent value="write" className="flex-1 flex flex-col">
+                  <Textarea
+                    placeholder="What's on your mind today? Share your thoughts, experiences, and reflections..."
+                    value={currentEntry}
+                    onChange={(e) => setCurrentEntry(e.target.value)}
+                    className="flex-1 text-base resize-none border-none shadow-none focus:ring-0 p-0 min-h-[400px]"
+                    style={{ 
+                      lineHeight: '1.6',
+                      fontFamily: 'ui-serif, Georgia, Cambria, serif'
+                    }}
+                  />
+                  
+                  {/* Voice Analysis Results */}
+                  {voiceAnalysis && (
+                    <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Sparkles className="h-4 w-4 text-purple-500" />
+                        <span className="font-medium text-sm">AI Analysis</span>
+                      </div>
+                      <p className="text-sm text-gray-700 mb-2">{voiceAnalysis.summary}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <div className="text-xs bg-white px-2 py-1 rounded">
+                          Sentiment: <span className="font-medium">{voiceAnalysis.sentiment}</span>
+                        </div>
+                        {voiceAnalysis.keywords.slice(0, 3).map((keyword: string, index: number) => (
+                          <div key={index} className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                            {keyword}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between items-center mt-6 pt-4 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      {currentEntry.length} characters
+                    </div>
+                    <Button 
+                      onClick={handleSaveEntry} 
+                      disabled={isSaving || !currentEntry.trim()} 
+                      className="px-6"
+                      size="lg"
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      {isSaving ? 'Saving...' : editingEntry ? 'Update Entry' : 'Save Entry'}
+                    </Button>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="voice" className="flex-1">
+                  <VoiceInput
+                    onTranscript={handleVoiceTranscript}
+                    onAIAnalysis={handleAIAnalysis}
+                    placeholder="Start speaking your diary entry..."
+                    isAnalyzing={isAnalyzing}
+                    mode="diary"
+                    className="h-full"
+                  />
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </div>

@@ -7,8 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Sparkles, Calendar, MapPin, Clock, Flag, Brain, Shield, BarChart3 } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Loader2, Sparkles, Calendar, MapPin, Clock, Flag, Brain, Shield, BarChart3, Mic, PenTool } from 'lucide-react';
 import { analyzeTaskWithGemini } from '@/lib/gemini-config';
+import VoiceInput from '@/components/VoiceInput';
+import { analyzeVoiceTranscript } from '@/lib/voiceAnalysis';
 
 interface TaskAnalysis {
   title: string;
