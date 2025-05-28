@@ -19,6 +19,31 @@ export interface Task {
   created_at?: string;
   updated_at?: string;
   completed_at?: string | null;
+  // Habit-specific fields
+  is_habit?: boolean;
+  habit_frequency?: 'daily' | 'weekly' | 'monthly' | 'custom';
+  habit_target_count?: number;
+  habit_streak_count?: number;
+  habit_best_streak?: number;
+  habit_color?: string;
+  habit_category?: string;
+}
+
+export interface HabitCompletion {
+  id?: string;
+  user_id: string;
+  task_id: string;
+  completion_date: string;
+  completion_count: number;
+  notes?: string;
+  mood_rating?: number;
+  created_at?: string;
+}
+
+export interface TaskWithHabitData extends Task {
+  completedToday?: boolean;
+  completionPercentage?: number;
+  recentCompletions?: HabitCompletion[];
 }
 
 export async function createTask(taskData: Partial<Task>): Promise<Task | null> {
@@ -268,6 +293,207 @@ export async function getTaskStats(): Promise<{
     return stats;
   } catch (error) {
     console.error('Error in getTaskStats:', error);
+    return null;
+  }
+}
+
+// Habit-specific functions
+
+export async function createHabitTask(habitData: {
+  title: string;
+  description: string;
+  category: string;
+  frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
+  target_count: number;
+  color: string;
+  rule_id: number | null;
+}): Promise<Task | null> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const taskData = {
+      title: habitData.title,
+      description: habitData.description,
+      main_topic: 'Habit',
+      sub_topic: habitData.category,
+      location: null,
+      due_date: null,
+      due_time: null,
+      is_holiday: false,
+      holiday_name: null,
+      status: 'pending' as const,
+      priority: 'medium' as const,
+      rule_id: habitData.rule_id || 0,
+      gemini_analysis: { type: 'habit', category: habitData.category },
+      // Habit-specific fields
+      is_habit: true,
+      habit_frequency: habitData.frequency,
+      habit_target_count: habitData.target_count,
+      habit_streak_count: 0,
+      habit_best_streak: 0,
+      habit_color: habitData.color,
+      habit_category: habitData.category,
+      user_id: user.id
+    };
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert([taskData])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error creating habit task:', error);
+    return null;
+  }
+}
+
+export async function getHabitTasks(date?: string): Promise<TaskWithHabitData[] | null> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const targetDate = date || new Date().toISOString().split('T')[0];
+
+    // Get habit tasks
+    const { data: habits, error: habitsError } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_habit', true)
+      .neq('status', 'cancelled')
+      .order('created_at', { ascending: false });
+
+    if (habitsError) throw habitsError;
+    if (!habits) return [];
+
+    // Get completions for the target date
+    const { data: completions, error: completionsError } = await supabase
+      .from('habit_completions')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('completion_date', targetDate);
+
+    if (completionsError) throw completionsError;
+
+    // Combine habits with completion data
+    const habitsWithData: TaskWithHabitData[] = habits.map(habit => {
+      const habitCompletions = (completions || []).filter(c => c.task_id === habit.id);
+      const completedToday = habitCompletions.length > 0;
+      const completionCount = habitCompletions.reduce((sum, c) => sum + c.completion_count, 0);
+      const completionPercentage = Math.min((completionCount / (habit.habit_target_count || 1)) * 100, 100);
+
+      return {
+        ...habit,
+        completedToday,
+        completionPercentage,
+        recentCompletions: habitCompletions
+      };
+    });
+
+    return habitsWithData;
+  } catch (error) {
+    console.error('Error fetching habit tasks:', error);
+    return null;
+  }
+}
+
+export async function toggleHabitCompletion(taskId: string, date?: string): Promise<boolean> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const targetDate = date || new Date().toISOString().split('T')[0];
+
+    // Check if completion already exists
+    const { data: existingCompletion, error: fetchError } = await supabase
+      .from('habit_completions')
+      .select('*')
+      .eq('task_id', taskId)
+      .eq('completion_date', targetDate)
+      .eq('user_id', user.id)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      throw fetchError;
+    }
+
+    if (existingCompletion) {
+      // Remove completion (toggle off)
+      const { error: deleteError } = await supabase
+        .from('habit_completions')
+        .delete()
+        .eq('id', existingCompletion.id);
+
+      if (deleteError) throw deleteError;
+    } else {
+      // Add completion (toggle on)
+      const { error: insertError } = await supabase
+        .from('habit_completions')
+        .insert({
+          task_id: taskId,
+          user_id: user.id,
+          completion_date: targetDate,
+          completion_count: 1
+        });
+
+      if (insertError) throw insertError;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error toggling habit completion:', error);
+    return false;
+  }
+}
+
+export async function getHabitInsights(): Promise<{
+  totalHabits: number;
+  activeStreaks: number;
+  completedToday: number;
+  bestStreak: number;
+} | null> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // Get habit tasks
+    const { data: habits, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_habit', true)
+      .neq('status', 'cancelled');
+
+    if (error) throw error;
+
+    const totalHabits = habits?.length || 0;
+    const activeStreaks = habits?.filter(h => (h.habit_streak_count || 0) > 0).length || 0;
+    const bestStreak = Math.max(...(habits?.map(h => h.habit_best_streak || 0) || [0]));
+
+    // Get today's completions
+    const today = new Date().toISOString().split('T')[0];
+    const { data: todayCompletions, error: todayError } = await supabase
+      .from('habit_completions')
+      .select('task_id')
+      .eq('user_id', user.id)
+      .eq('completion_date', today);
+
+    if (todayError) throw todayError;
+
+    const completedToday = new Set(todayCompletions?.map(c => c.task_id) || []).size;
+
+    return {
+      totalHabits,
+      activeStreaks,
+      completedToday,
+      bestStreak
+    };
+  } catch (error) {
+    console.error('Error getting habit insights:', error);
     return null;
   }
 }

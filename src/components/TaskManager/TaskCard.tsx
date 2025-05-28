@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
   Calendar, MapPin, Clock, Flag, CheckCircle, Circle, 
-  Edit, Trash2, Brain, Shield, BarChart3, Sparkles 
+  Edit, Trash2, Brain, Shield, BarChart3, Sparkles, Repeat 
 } from 'lucide-react';
 
 interface Task {
@@ -25,6 +25,14 @@ interface Task {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  // Habit-specific fields
+  is_habit?: boolean;
+  habit_frequency?: 'daily' | 'weekly' | 'monthly' | 'custom';
+  habit_target_count?: number;
+  habit_streak_count?: number;
+  habit_best_streak?: number;
+  habit_color?: string;
+  habit_category?: string;
 }
 
 interface TaskCardProps {
@@ -173,11 +181,20 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               }`}>
                 {task.title}
               </CardTitle>
-              
-              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="outline" className="text-xs">
                   {task.main_topic} → {task.sub_topic}
                 </Badge>
+                
+                {task.is_habit && (
+                  <Badge 
+                    variant="outline" 
+                    className="text-purple-600 border-purple-300 bg-purple-50"
+                  >
+                    <Repeat className="h-3 w-3 mr-1" />
+                    Habit
+                  </Badge>
+                )}
                 
                 {task.is_holiday && task.holiday_name && (
                   <Badge variant="secondary" className="text-xs bg-red-100 text-red-700">
@@ -232,9 +249,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           }`}>
             {task.description}
           </CardDescription>
-        )}
-
-        {/* Details Grid */}
+        )}        {/* Details Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
           {/* Date & Time */}
           {(task.due_date || task.due_time) && (
@@ -247,6 +262,17 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                   <span className="text-red-500 ml-1">(Overdue)</span>
                 )}
               </span>
+            </div>
+          )}
+
+          {/* Habit Frequency - Only show for habits */}
+          {task.is_habit && task.habit_frequency && (
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Repeat className="h-4 w-4" />
+              <span className="capitalize">{task.habit_frequency}</span>
+              {task.habit_target_count && task.habit_target_count > 1 && (
+                <span> • {task.habit_target_count}x</span>
+              )}
             </div>
           )}
 
@@ -263,13 +289,36 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             <RuleIcon className={`h-4 w-4 text-${ruleInfo.color}-500`} />
             <span className="text-xs">Rule {task.rule_id}</span>
           </div>
-        </div>
-
-        {/* AI Analysis Indicator */}
+        </div>        {/* AI Analysis Indicator */}
         {task.gemini_analysis && (
           <div className="flex items-center gap-1 text-xs text-muted-foreground pt-2 border-t">
             <Sparkles className="h-3 w-3 text-purple-500" />
             <span>Analyzed by AI • Created {formatDate(task.created_at)}</span>
+          </div>
+        )}
+
+        {/* Habit Streak Info - Only show for habits with streak data */}
+        {task.is_habit && (task.habit_streak_count || task.habit_best_streak) && (
+          <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
+            <div className="flex items-center gap-4">
+              {task.habit_streak_count && task.habit_streak_count > 0 && (
+                <span className="flex items-center gap-1">
+                  🔥 Current: {task.habit_streak_count} days
+                </span>
+              )}
+              {task.habit_best_streak && task.habit_best_streak > 0 && (
+                <span className="flex items-center gap-1">
+                  🏆 Best: {task.habit_best_streak} days
+                </span>
+              )}
+            </div>
+            {task.habit_color && (
+              <div 
+                className="w-3 h-3 rounded-full border border-gray-300"
+                style={{ backgroundColor: task.habit_color }}
+                title={`Habit color: ${task.habit_color}`}
+              />
+            )}
           </div>
         )}
 

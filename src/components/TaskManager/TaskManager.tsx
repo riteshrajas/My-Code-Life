@@ -32,6 +32,14 @@ interface Task {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  // Habit-specific fields
+  is_habit?: boolean;
+  habit_frequency?: 'daily' | 'weekly' | 'monthly' | 'custom';
+  habit_target_count?: number;
+  habit_streak_count?: number;
+  habit_best_streak?: number;
+  habit_color?: string;
+  habit_category?: string;
 }
 
 export const TaskManager: React.FC = () => {
