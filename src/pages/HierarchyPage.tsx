@@ -19,9 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Search, UserPlus, Users, Briefcase, Heart, Shield, Star, HelpCircle, GripVertical } from 'lucide-react';
 import supabase from '@/lib/supabaseClient';
 import { toast } from '@/hooks/use-toast';
-
-// Reset server context for SSR compatibility
-resetServerContext();
+import '@/styles/draggable.css';
 
 // Define hierarchy categories with their properties
 const hierarchyCategories = [
@@ -118,7 +116,22 @@ const HierarchyPage: React.FC = () => {
         throw error;
       }
 
-      setContacts(data || []);
+      if (data) {
+        const ids = data.map(c => c.id);
+        const uniqueIds = new Set(ids);
+        if (ids.length !== uniqueIds.size) {
+          console.warn('Duplicate contact IDs found in fetched data!');
+          const idCounts: { [key: string]: number } = {};
+          ids.forEach(id => {
+            idCounts[id] = (idCounts[id] || 0) + 1;
+          });
+          const duplicates = Object.entries(idCounts).filter(([, count]) => count > 1);
+          console.warn('The following IDs are duplicated:', duplicates.map(([id]) => id));
+        }
+        setContacts(data);
+      } else {
+        setContacts([]);
+      }
     } catch (error) {
       console.error('Error fetching contacts:', error);
       toast({
@@ -131,62 +144,49 @@ const HierarchyPage: React.FC = () => {
     }
   };
 
-  // Add this function to safely get draggable styles with RTL support
-  const getStyle = (style: any, snapshot: any) => {
-    if (!snapshot.isDragging) return {};
-    if (!snapshot.isDropAnimating) {
-      return style;
-    }
-
-    return {
-      ...style,
-      // Cannot animate to "auto" - use 0 instead
-      height: style.height || 0,
-      // Disable transitions to avoid weird behavior
-      transitionDuration: `0.001s`,
-    };
-  };
-
   // Modified group contacts function to ensure stable IDs
   const groupContactsByHierarchy = () => {
     const grouped: GroupedContacts = {};
-    
-    // Initialize groups with empty arrays
     hierarchyCategories.forEach(category => {
       grouped[category.id] = [];
     });
-    
-    // Filter contacts if search query exists
+
     const filteredContacts = contacts.filter(contact => {
+      // Ensure contact has a valid ID before filtering
+      if (!contact.id || String(contact.id).trim() === '') {
+        // console.warn('Filtering out contact with invalid or missing ID during search:', contact);
+        return false;
+      }
       if (!searchQuery) return true;
-      return contact.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        contact.email?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      return (
+        contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        contact.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         contact.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        contact.company?.toLowerCase().includes(searchQuery.toLowerCase());
+        contact.company?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     });
-    
-    // Add contacts to their groups - ensure each contact has a unique ID
+
     filteredContacts.forEach(contact => {
+      // This check is now earlier in the filter, but good to be defensive
+      if (!contact.id || String(contact.id).trim() === '') {
+        // console.warn('Skipping contact with invalid or missing ID during grouping:', contact);
+        return;
+      }
       const hierarchy = contact.hierarchy || 'others';
+      // Ensure the contact object has its ID as a string for react-beautiful-dnd
+      const contactWithStringId = { ...contact, id: String(contact.id) };
       if (grouped[hierarchy]) {
-        // Make sure contact.id is a string
-        const contactWithStringId = {
-          ...contact,
-          id: String(contact.id)
-        };
         grouped[hierarchy].push(contactWithStringId);
       } else {
-        grouped['others'].push({
-          ...contact,
-          id: String(contact.id)
-        });
+        // Should not happen if initialized correctly, but as a fallback
+        grouped['others'] = grouped['others'] || [];
+        grouped['others'].push(contactWithStringId);
       }
     });
-    
     return grouped;
   };
 
-  // Handle drag and drop between categories - with log messages for debugging
+  // Handle drag and drop between categories
   const handleDragEnd = async (result: DropResult) => {
     console.log('Drag ended:', result);
     const { destination, source, draggableId } = result;
@@ -206,8 +206,8 @@ const HierarchyPage: React.FC = () => {
     try {
       console.log('Moving contact:', draggableId, 'to', destination.droppableId);
       
-      // Find the contact that was dragged
-      const contactId = draggableId;
+      // Extract the actual contact ID from the draggableId (remove 'contact-' prefix)
+      const contactId = draggableId.replace('contact-', '');
       const newHierarchy = destination.droppableId;
       
       // Update the contact's hierarchy in the state
@@ -308,8 +308,7 @@ const HierarchyPage: React.FC = () => {
               Go to Contacts Page
             </Button>
           </CardContent>
-        </Card>
-      ) : (
+        </Card>      ) : (
         <DragDropContext onDragEnd={handleDragEnd}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {hierarchyCategories.map((category) => (
@@ -331,65 +330,105 @@ const HierarchyPage: React.FC = () => {
                       <CardDescription className="text-xs">{category.description}</CardDescription>
                     </div>
                   </div>
-                </CardHeader>
-                <Droppable droppableId={category.id} key={category.id}>
+                </CardHeader>                <Droppable droppableId={category.id} key={category.id}>
                   {(provided, snapshot) => (
-                    <CardContent 
+                    <CardContent
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`p-2 min-h-[300px] transition-colors duration-200 ${snapshot.isDraggingOver ? 'bg-muted/50 border-2 border-dashed border-primary/50' : ''}`}
-                      style={{ minHeight: '300px', height: '100%' }}
+                      className={`p-2 min-h-[300px] transition-colors duration-200 ${
+                        snapshot.isDraggingOver ? 'bg-muted/50 border-2 border-dashed border-primary/50' : ''
+                      }`}
+                      style={{ minHeight: '300px', height: 'auto' }} // Ensure height is auto or 100%
                     >
-                      {groupedContacts[category.id] && groupedContacts[category.id].length === 0 ? (
+                      {groupedContacts[category.id] &&
+                      groupedContacts[category.id].length === 0 ? (
                         <div className="flex items-center justify-center h-full">
-                          <p className="text-muted-foreground text-sm">Drag contacts here</p>
+                          <p className="text-muted-foreground text-sm">
+                            Drag contacts here
+                          </p>
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          {groupedContacts[category.id] && groupedContacts[category.id].map((contact, index) => (
-                            <Draggable
-                              key={String(contact.id)}
-                              draggableId={String(contact.id)}
-                              index={index}
-                            >
-                              {(provided, snapshot) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  className={`p-3 rounded-md shadow-sm transition-all duration-200 ${
-                                    snapshot.isDragging ? 'opacity-80 scale-105' : ''
-                                  }`}
-                                  style={{
-                                    backgroundColor: getBackgroundColor(contact.hierarchy || 'others'),
-                                    borderLeft: `3px solid ${getBorderColor(contact.hierarchy || 'others')}`,
-                                    ...(snapshot.isDragging ? { 
-                                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                                      zIndex: 9999
-                                    } : {}),
-                                    ...provided.draggableProps.style,
-                                  }}
+                          {groupedContacts[category.id] &&
+                            groupedContacts[category.id]
+                            // .filter(contact => { // Filter already applied in groupContactsByHierarchy
+                            // const hasValidId = contact.id && String(contact.id).trim() !== '';
+                            // const hasValidName = contact.name && contact.name.trim() !== '';
+                            // if (!hasValidId) {
+                            // console.warn('Rendering: Filtering out contact with invalid ID:', contact);
+                            // }
+                            // return hasValidId && hasValidName;
+                            // })
+                            .map((contact, index) => {
+                              // Ensure draggableId is a string and unique
+                              const draggableId = String(contact.id); // Use contact.id directly if it's guaranteed unique and string
+                              
+                              if (!draggableId || draggableId.trim() === '') {
+                                console.error('Attempting to render Draggable with invalid ID:', contact);
+                                return null; // Skip rendering this draggable
+                              }
+
+                              return (
+                                <Draggable
+                                  key={draggableId} // Key must be stable and unique
+                                  draggableId={draggableId} // Must be a string
+                                  index={index}
                                 >
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex-1">
-                                      <div className="font-medium text-sm">{contact.name}</div>
-                                      {contact.company && (
-                                        <div className="text-xs text-muted-foreground mt-1">{contact.company}</div>
-                                      )}
-                                    </div>
-                                    <div 
-                                      {...provided.dragHandleProps} 
-                                      className="cursor-grab p-1 hover:bg-gray-100 rounded"
+                                  {(providedDraggable, snapshotDraggable) => (
+                                    <div
+                                      ref={providedDraggable.innerRef}
+                                      {...providedDraggable.draggableProps}
+                                      // {...providedDraggable.dragHandleProps} // Apply dragHandleProps to the element you want to be the handle
+                                      className={`p-3 rounded-md shadow-sm transition-all duration-200 ${
+                                        snapshotDraggable.isDragging ? 'opacity-80 scale-105' : ''
+                                      }`}
+                                      style={{
+                                        backgroundColor: getBackgroundColor(
+                                          contact.hierarchy || 'others'
+                                        ),
+                                        borderLeft: `3px solid ${getBorderColor(
+                                          contact.hierarchy || 'others'
+                                        )}`,
+                                        ...(snapshotDraggable.isDragging
+                                          ? {
+                                              boxShadow:
+                                                '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                                              zIndex: 9999,
+                                            }
+                                          : {}),
+                                        ...providedDraggable.draggableProps.style, // Important for dnd styles
+                                      }}
                                     >
-                                      <GripVertical size={16} className="text-gray-400" />
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex-1">
+                                          <div className="font-medium text-sm">
+                                            {contact.name}
+                                          </div>
+                                          {contact.company && (
+                                            <div className="text-xs text-muted-foreground mt-1">
+                                              {contact.company}
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div
+                                          {...providedDraggable.dragHandleProps} // Apply drag handle here
+                                          className="cursor-grab p-1 hover:bg-gray-100 rounded"
+                                          aria-label="Drag contact"
+                                        >
+                                          <GripVertical
+                                            size={16}
+                                            className="text-gray-400"
+                                          />
+                                        </div>
+                                      </div>
                                     </div>
-                                  </div>
-                                </div>
-                              )}
-                            </Draggable>
-                          ))}
+                                  )}
+                                </Draggable>
+                              );
+                            })}
+                          {provided.placeholder}
                         </div>
                       )}
-                      {provided.placeholder}
                     </CardContent>
                   )}
                 </Droppable>
