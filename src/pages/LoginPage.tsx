@@ -27,7 +27,7 @@ const LoginPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-center text-foreground">Login to My Life Code</h1>
         <p className="text-center text-muted-foreground">
           Login with Passkey (biometrics) or fallback credentials.<br />
-          <span className="text-xs">Username: <b>Ritesh</b> | Password: <b>riteshisawesome</b></span>
+          <span className="text-xs">Email: <b>testing@test.com</b> | Password: <b>test</b></span>
         </p>
         {error && <p className="text-red-500 text-center">{error}</p>}
         <Auth
