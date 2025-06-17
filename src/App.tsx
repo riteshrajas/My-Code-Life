@@ -6,6 +6,10 @@ import DashboardPage from '@/pages/DashboardPage';
 import ContactsPage from '@/pages/ContactsPage';
 import HierarchyPage from '@/pages/HierarchyPage';
 import DailyDiaryPage from '@/pages/DailyDiaryPage';
+import FamilyLoginPage from '@/pages/FamilyLoginPage';
+import FamilyProfilePage from '@/pages/FamilyProfilePage';
+import FamilyRegistrationPage from '@/pages/FamilyRegistrationPage';
+import FamilyProtectedRoute from '@/components/FamilyProtectedRoute';
 import supabase  from '@/lib/supabaseClient';
 import { GeminiAdvisorPanel } from '@/components/gemini-advisor';
 import RootRedirect from '@/components/RootRedirect';
@@ -62,9 +66,14 @@ function App() {
   return (
     <Router>
       <div className="flex h-screen">
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
+        <div className="flex-1 flex flex-col overflow-hidden">          <Routes>            <Route path="/login" element={<LoginPage />} />
+            {/* Family Portal Routes */}
+            <Route path="/ritesh" element={<FamilyLoginPage />} />
+            <Route path="/family/register" element={<FamilyRegistrationPage />} />
+            <Route element={<FamilyProtectedRoute />}>
+              <Route path="/ritesh/profile" element={<FamilyProfilePage />} />
+            </Route>
+            
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<DashboardLayout><DashboardPage /></DashboardLayout>} />
               <Route path="/dashboard/daily-diary" element={<DashboardLayout><DailyDiaryPage /></DashboardLayout>} />

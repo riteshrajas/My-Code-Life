@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
@@ -29,7 +30,7 @@ import {
 import { 
   UserPlus, Upload, MoreHorizontal, Trash2, Edit, FileText, 
   Phone, Mail, MapPin, CalendarClock, Download, Plus, Search,
-  BookOpen, Loader2
+  BookOpen, Loader2, Users, ExternalLink
 } from 'lucide-react';
 import  supabase from '@/lib/supabaseClient';
 import Papa from 'papaparse';
@@ -51,6 +52,8 @@ type Contact = {
   last_interaction?: string;
   tags?: string[];
   user_id?: string;
+  family_access_enabled?: boolean;
+  family_member_id?: string;
 };
 
 // Define Story type
@@ -66,14 +69,14 @@ type Story = {
 const ContactsPage: React.FC = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [newContact, setNewContact] = useState<Partial<Contact>>({
+  const [searchQuery, setSearchQuery] = useState('');  const [newContact, setNewContact] = useState<Partial<Contact>>({
     name: '',
     email: '',
     phone: '',
     address: '',
     company: '',
-    notes: ''
+    notes: '',
+    family_access_enabled: false
   });
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -104,6 +107,33 @@ const ContactsPage: React.FC = () => {
     
     fetchUserAndContacts();
   }, []);
+
+  // Handle import click - triggers the file input
+  const handleImportClick = () => {
+    document.getElementById('csvFileUpload')?.click();
+  };
+
+  // Export contacts to CSV
+  const handleExportContacts = () => {
+    const exportData = filteredContacts.map(contact => ({
+      Name: contact.name,
+      Email: contact.email,
+      Phone: contact.phone,
+      Address: contact.address || '',
+      Company: contact.company || '',
+      Notes: contact.notes || ''
+    }));
+    
+    const csv = Papa.unparse(exportData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `contacts_export_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Fetch contacts from Supabase
   const fetchContacts = async () => {
@@ -404,16 +434,15 @@ const ContactsPage: React.FC = () => {
       toast({
         title: "Contact Added",
         description: "New contact has been successfully added.",
-      });
-
-      // Reset form and close dialog
+      });      // Reset form and close dialog
       setNewContact({
         name: '',
         email: '',
         phone: '',
         address: '',
         company: '',
-        notes: ''
+        notes: '',
+        family_access_enabled: false
       });
       setShowAddDialog(false);
       fetchContacts();
@@ -487,33 +516,67 @@ const ContactsPage: React.FC = () => {
     }
   };
 
-  // Export contacts as CSV
-  const handleExportContacts = () => {
-    const data = filteredContacts.map(c => ({
-      Name: c.name,
-      Email: c.email,
-      Phone: c.phone,
-      Address: c.address || '',
-      Company: c.company || '',
-      Notes: c.notes || '',
-      'Date Added': new Date(c.created_at).toLocaleDateString(),
-      'Last Interaction': c.last_interaction ? new Date(c.last_interaction).toLocaleDateString() : ''
-    }));
+  // Toggle family access for contact
+  const handleFamilyAccessToggle = async (contact: Contact, enabled: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('contacts')
+        .update({
+          family_access_enabled: enabled,
+          // If disabling, also clear family_member_id
+          family_member_id: enabled ? contact.family_member_id : null
+        })
+        .eq('id', contact.id);
 
-    const csv = Papa.unparse(data);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `contacts_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: enabled ? "Family Access Enabled" : "Family Access Disabled",
+        description: enabled 
+          ? `${contact.name} can now register for family portal access` 
+          : `${contact.name} no longer has family portal access`,
+      });
+
+      fetchContacts();
+    } catch (error) {
+      console.error('Error updating family access:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update family access. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  // Trigger file input click
-  const handleImportClick = () => {
-    document.getElementById('csvFileUpload')?.click();
+  // Generate family registration link
+  const generateFamilyRegistrationLink = (contact: Contact) => {
+    const baseUrl = window.location.origin;
+    const params = new URLSearchParams({
+      contactId: contact.id,
+      name: contact.name
+    });
+    return `${baseUrl}/family/register?${params.toString()}`;
+  };
+
+  // Copy registration link to clipboard
+  const copyRegistrationLink = async (contact: Contact) => {
+    const link = generateFamilyRegistrationLink(contact);
+    try {
+      await navigator.clipboard.writeText(link);
+      toast({
+        title: "Link Copied!",
+        description: `Registration link for ${contact.name} copied to clipboard`,
+      });
+    } catch (error) {
+      console.error('Failed to copy link:', error);
+      toast({
+        title: "Error",
+        description: "Failed to copy link. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Fetch stories for a contact
@@ -751,14 +814,28 @@ const ContactsPage: React.FC = () => {
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="address" className="text-right">
                     Address
-                  </Label>
-                  <Input
+                  </Label>                  <Input
                     id="address"
                     value={newContact.address}
                     onChange={(e) => setNewContact({...newContact, address: e.target.value})}
                     className="col-span-3"
                     placeholder="Address"
                   />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="family-access" className="text-right">
+                    Family Access
+                  </Label>
+                  <div className="col-span-3 flex items-center gap-2">
+                    <Switch
+                      id="family-access"
+                      checked={newContact.family_access_enabled || false}
+                      onCheckedChange={(enabled) => setNewContact({...newContact, family_access_enabled: enabled})}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      Allow this contact to register for family portal
+                    </span>
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="notes" className="text-right">
@@ -834,12 +911,12 @@ const ContactsPage: React.FC = () => {
             />
           ) : (
             <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
+              <Table>                <TableHeader>
                   <TableRow>
                     <TableHead className="w-[200px]">Name</TableHead>
                     <TableHead className="hidden md:table-cell">Contact Info</TableHead>
                     <TableHead className="hidden lg:table-cell">Company</TableHead>
+                    <TableHead className="hidden xl:table-cell">Family Access</TableHead>
                     <TableHead className="hidden lg:table-cell">Added On</TableHead>
                     <TableHead className="w-[150px]">Actions</TableHead>
                   </TableRow>
@@ -868,9 +945,42 @@ const ContactsPage: React.FC = () => {
                               <span className="truncate max-w-[200px]">{contact.address}</span>
                             </div>
                           )}
+                        </div>                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">{contact.company || '—'}</TableCell>
+                      <TableCell className="hidden xl:table-cell">
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={contact.family_access_enabled || false}
+                              onCheckedChange={(enabled) => handleFamilyAccessToggle(contact, enabled)}
+                              className="scale-75"
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              {contact.family_access_enabled ? 'Enabled' : 'Disabled'}
+                            </span>
+                          </div>
+                          {contact.family_access_enabled && (
+                            <div className="flex items-center gap-1">
+                              {contact.family_member_id ? (
+                                <div className="flex items-center gap-1 text-xs text-green-600">
+                                  <Users size={12} />
+                                  <span>Registered</span>
+                                </div>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => copyRegistrationLink(contact)}
+                                  className="h-6 px-2 text-xs"
+                                >
+                                  <ExternalLink size={10} className="mr-1" />
+                                  Copy Link
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
-                      <TableCell className="hidden lg:table-cell">{contact.company || '—'}</TableCell>
                       <TableCell className="hidden lg:table-cell">
                         <div className="flex items-center gap-1 text-sm">
                           <CalendarClock size={14} className="text-muted-foreground" />
@@ -990,7 +1100,21 @@ const ContactsPage: React.FC = () => {
                                   value={editingContact?.address || ''}
                                   onChange={(e) => setEditingContact(prev => prev ? {...prev, address: e.target.value} : null)}
                                   className="col-span-3"
-                                />
+                                />                              </div>
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-family-access" className="text-right">
+                                  Family Access
+                                </Label>
+                                <div className="col-span-3 flex items-center gap-2">
+                                  <Switch
+                                    id="edit-family-access"
+                                    checked={editingContact?.family_access_enabled || false}
+                                    onCheckedChange={(enabled) => setEditingContact(prev => prev ? {...prev, family_access_enabled: enabled} : null)}
+                                  />
+                                  <span className="text-sm text-muted-foreground">
+                                    Allow this contact to register for family portal
+                                  </span>
+                                </div>
                               </div>
                               <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="edit-notes" className="text-right">

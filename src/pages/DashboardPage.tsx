@@ -680,7 +680,6 @@ const DashboardPage = () => {
 
         </div>
       </div>
-      Task Creation Modal
       <TaskCreationModal 
         open={showTaskModal}
         onOpenChange={setShowTaskModal}
