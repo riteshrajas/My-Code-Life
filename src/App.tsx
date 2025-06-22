@@ -6,6 +6,8 @@ import DashboardPage from '@/pages/DashboardPage';
 import ContactsPage from '@/pages/ContactsPage';
 import HierarchyPage from '@/pages/HierarchyPage';
 import DailyDiaryPage from '@/pages/DailyDiaryPage';
+import ProfilePage from '@/pages/ProfilePage';
+import SettingsPage from '@/pages/SettingsPage';
 import FamilyLoginPage from '@/pages/FamilyLoginPage';
 import FamilyProfilePage from '@/pages/FamilyProfilePage';
 import FamilyRegistrationPage from '@/pages/FamilyRegistrationPage';
@@ -71,12 +73,14 @@ function App() {
             <Route path="/ritesh" element={<FamilyLoginPage />} />
             <Route path="/family/register" element={<FamilyRegistrationPage />} />
             <Route element={<FamilyProtectedRoute />}>
-              <Route path="/ritesh/profile" element={<FamilyProfilePage />} />
+              <Route path="/family-profile" element={<FamilyProfilePage />} />
             </Route>
             
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<DashboardLayout><DashboardPage /></DashboardLayout>} />
               <Route path="/dashboard/daily-diary" element={<DashboardLayout><DailyDiaryPage /></DashboardLayout>} />
+              <Route path="/dashboard/settings" element={<DashboardLayout><SettingsPage /></DashboardLayout>} />
+              <Route path="/profile" element={<DashboardLayout><ProfilePage /></DashboardLayout>} />
               <Route path="/contacts" element={<DashboardLayout><ContactsPage /></DashboardLayout>} />
               <Route path="/hierarchy" element={<DashboardLayout><HierarchyPage /></DashboardLayout>} />
               <Route path="/calendar-timeline" element={<DashboardLayout><CalendarTimelinePage /></DashboardLayout>} />

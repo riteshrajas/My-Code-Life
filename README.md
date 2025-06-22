@@ -134,6 +134,8 @@ Built around three scientifically-backed life principles:
    src/sql/setup_diary_entries_table.sql
    src/sql/setup_tasks_table.sql
    src/sql/setup_family_members_table.sql
+   src/sql/setup_user_settings_table.sql
+   src/sql/setup_user_profiles_table.sql
    ```
 
 4. **Launch Your Command Center**

@@ -18,14 +18,42 @@ export function GeminiAdvisorPanel() {
   const [isOpen, setIsOpen] = useState(true);
   const [isMinimized, setIsMinimized] = useState(false);
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<Message[]>([
-    { 
-      role: 'assistant', 
-      content: 'Hello! I\'m your Aathera Advisor. Share an action or thought, and I\'ll provide feedback based on your life rules. For example, try asking: "Can I teach someone algebra?" or "I want to learn a new skill."' 
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load messages from localStorage on initial render
+  useEffect(() => {
+    try {
+      const storedMessages = localStorage.getItem('gemini-advisor-messages');
+      if (storedMessages) {
+        setMessages(JSON.parse(storedMessages));
+      } else {
+        setMessages([
+          { 
+            role: 'assistant', 
+            content: 'Hello! I\'m your Aathera Advisor. Share an action or thought, and I\'ll provide feedback based on your life rules. For example, try asking: "Can I teach someone algebra?" or "I want to learn a new skill."' 
+          }
+        ]);
+      }
+    } catch (error) {
+      console.error("Failed to parse messages from localStorage", error);
+      // If parsing fails, set to default
+      setMessages([
+        { 
+          role: 'assistant', 
+          content: 'Hello! I\'m your Aathera Advisor. Share an action or thought, and I\'ll provide feedback based on your life rules. For example, try asking: "Can I teach someone algebra?" or "I want to learn a new skill."' 
+        }
+      ]);
+    }
+  }, []);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem('gemini-advisor-messages', JSON.stringify(messages));
+    }
+  }, [messages]);
 
   // Call the actual Gemini API
   const callGeminiAPI = async (userMessage: string) => {

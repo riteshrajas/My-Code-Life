@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { User as UserIcon } from 'lucide-react';
+import { User as UserIcon, Settings, LifeBuoy } from 'lucide-react';
 
 export function UserMenu() {
   const [user, setUser] = useState<any>(null);
@@ -66,9 +66,18 @@ export function UserMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>{user?.email || 'My Account'}</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate('/dashboard/settings')}>Settings</DropdownMenuItem> {/* Example navigation */}
-        <DropdownMenuItem>Support</DropdownMenuItem>
+        <DropdownMenuSeparator />        <DropdownMenuItem onClick={() => navigate('/profile')}>
+          <UserIcon className="mr-2 h-4 w-4" />
+          Profile
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate('/dashboard/settings')}>
+          <Settings className="mr-2 h-4 w-4" />
+          Settings
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => window.location.href = 'mailto:code.ritesh+MyCodeLife@gmail.com'}>
+          <LifeBuoy className="mr-2 h-4 w-4" />
+          Support
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         {user ? (
           <DropdownMenuItem onClick={handleSignOut}>
