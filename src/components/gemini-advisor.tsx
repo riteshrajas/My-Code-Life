@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Minimize2, Maximize2, X, Bot, CheckCircle2, AlertCircle, Brain, Shield, BarChart, UserCircle, Settings, Zap, Lightbulb } from 'lucide-react';
+import { Send, Minimize2, Maximize2, X, Bot, CheckCircle2, AlertCircle, Brain, Shield, BarChart, UserCircle, Settings, Zap, Lightbulb, RotateCcw, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -60,8 +60,8 @@ export function GeminiAdvisorPanel() {
         setMessages(JSON.parse(storedMessages));
       } else {
         const welcomeMessage = storedAgenticMode
-          ? 'Hello! I\'m your Agentic Aethera Advisor. I can provide life guidance AND take actions for you! Try asking: "Create a task to call mom" or "Change theme to dark mode". I can also give traditional advice - just ask about any situation!'
-          : 'Hello! I\'m your Aethera Advisor. Share an action or thought, and I\'ll provide feedback based on your life rules. For example, try asking: "Can I teach someone algebra?" or "I want to learn a new skill."';
+          ? 'Hello! I\'m your Agentic Aethera Advisor. I can provide life guidance AND take actions for you! Try: "Create a task to call mom", "Change theme to dark", or ask for advice like "Should I learn Python?". For casual chat, just say hi!'
+          : 'Hello! I\'m your Aethera Advisor. Ask for advice on decisions and life choices, and I\'ll provide guidance based on your life rules. For casual conversation, just say hello!';
         
         setMessages([
           { 
@@ -103,6 +103,14 @@ export function GeminiAdvisorPanel() {
   const handleAgenticModeToggle = (enabled: boolean) => {
     setAgenticMode(enabled);
     
+    // Update the chat session's agentic mode if it exists
+    if (chatSession && typeof chatSession.setAgenticMode === 'function') {
+      chatSession.setAgenticMode(enabled);
+    } else {
+      // Create new session with the correct mode if none exists
+      setChatSession(new GeminiChatSession(LIFE_RULES, enabled));
+    }
+    
     const modeMessage = enabled 
       ? 'Agentic mode enabled! I can now take actions for you. Try commands like "Create a task to..." or "Change theme to..."'
       : 'Agentic mode disabled. I\'ll focus on providing life guidance and advice.';
@@ -111,6 +119,41 @@ export function GeminiAdvisorPanel() {
       role: 'assistant', 
       content: modeMessage
     }]);
+  };
+
+  // Clear conversation history
+  const handleClearHistory = () => {
+    setMessages([]);
+    
+    // Clear chat session if it exists and has the method
+    if (chatSession && typeof chatSession.clearSession === 'function') {
+      chatSession.clearSession();
+    }
+    
+    // Add welcome message
+    const welcomeMessage = agenticMode
+      ? 'Hello! I\'m your Agentic Aethera Advisor. I can provide life guidance AND take actions for you! Try: "Create a task to call mom", "Change theme to dark", or ask for advice like "Should I learn Python?". For casual chat, just say hi!'
+      : 'Hello! I\'m your Aethera Advisor. Ask for advice on decisions and life choices, and I\'ll provide guidance based on your life rules. For casual conversation, just say hello!';
+    
+    setMessages([{ 
+      role: 'assistant', 
+      content: welcomeMessage
+    }]);
+    
+    // Clear from localStorage
+    localStorage.removeItem('gemini-advisor-messages');
+  };
+
+  // Start new session
+  const handleNewSession = () => {
+    // Reset existing session if it exists and has the method
+    if (chatSession && typeof chatSession.resetSession === 'function') {
+      chatSession.resetSession();
+    } else {
+      // Create new session if none exists
+      setChatSession(new GeminiChatSession(LIFE_RULES, agenticMode));
+    }
+    handleClearHistory();
   };
 
   // Call the actual Gemini API with agentic capabilities
@@ -277,12 +320,17 @@ export function GeminiAdvisorPanel() {
     try {
       parsedResponse = JSON.parse(response) as RuleResponse;
     } catch (e) {
-      // If parsing fails, just return the text content
+      // If parsing fails, just return the text content (casual conversation)
       return <div className="whitespace-pre-wrap">{response}</div>;
     }
     
     // Skip rendering if it's an action type (handled elsewhere)
     if (parsedResponse.type === 'action') {
+      return <div className="whitespace-pre-wrap">{response}</div>;
+    }
+    
+    // If it's not a proper rule response structure, treat as plain text
+    if (!parsedResponse.ruleMatch || !parsedResponse.ruleNumber) {
       return <div className="whitespace-pre-wrap">{response}</div>;
     }
     
@@ -514,6 +562,24 @@ export function GeminiAdvisorPanel() {
                   variant="ghost" 
                   size="icon" 
                   className="h-8 w-8 hover:bg-muted/80" 
+                  onClick={handleNewSession}
+                  title="New Session"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 hover:bg-muted/80" 
+                  onClick={handleClearHistory}
+                  title="Clear History"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 hover:bg-muted/80" 
                   onClick={() => setIsMinimized(!isMinimized)}
                 >
                   {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
@@ -583,7 +649,7 @@ export function GeminiAdvisorPanel() {
                     {/* For assistant messages, handle different response types */}
                     {msg.role === 'assistant' ? (
                       <div className="space-y-2">
-                        {msg.content.startsWith('{') ? (
+                        {msg.content.startsWith('{') && msg.content.includes('ruleMatch') ? (
                           <RuleResponseCard response={msg.content} />
                         ) : (
                           <div className="prose prose-sm dark:prose-invert">

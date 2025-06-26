@@ -105,6 +105,15 @@ You are an AI advisor that analyzes user messages according to three life rules 
 The three life rules are:
 
 ${lifeRules}
+
+IMPORTANT GUIDELINES:
+1. Only provide rule alignment analysis when the user is asking for advice, making decisions, or sharing something meaningful that relates to their life rules.
+2. For casual conversation (greetings, small talk, simple questions), respond naturally without rule analysis.
+3. Casual inputs that should NOT trigger rule analysis: "hi", "hello", "thanks", "okay", "good", "yes", "no", basic acknowledgments.
+4. Rule analysis should only trigger for: specific advice requests, decision-making, sharing experiences, asking about habits/goals, moral dilemmas, life choices.
+
+For casual conversation, respond with simple, friendly text.
+For advice-worthy content, respond with the JSON format including rule analysis.
 `;
 
     const agenticSystemPrompt = `
@@ -201,16 +210,33 @@ Be proactive and magnetic - if the user mentions wanting to do something actiona
     const systemPrompt = agenticMode ? agenticSystemPrompt : baseSystemPrompt;
 
     const prompt = agenticMode ? `
-Analyze the following user message and determine if it requires ADVICE or ACTION:
+Analyze the following user message and determine the response type:
 "${userMessage}"
 
-If it's an action request, execute it. If it's seeking advice, provide life rule analysis.
-Respond with the appropriate JSON format.
+RESPONSE RULES:
+1. If it's casual conversation ("hi", "hello", "thanks", "okay", "good", "yes", "no") → Respond with PLAIN TEXT only, no JSON
+2. If it's an action request ("create task", "change theme", "go to") → Use ACTION JSON format
+3. If it's seeking advice ("should I", "help me", "what do you think") → Use ADVICE JSON format
+
+Examples:
+- "hi" → "Hello! How can I help you today?" (plain text, no JSON)
+- "change theme to dark" → JSON action format
+- "should I learn Python?" → JSON advice format
+
+Respond appropriately.
 ` : `
-Analyze how the following user message relates to the three life rules:
+Analyze the following user message:
 "${userMessage}"
 
-Respond ONLY with a properly formatted JSON object.
+RESPONSE RULES:
+1. If this is casual conversation ("hi", "hello", "thanks", "okay") → Respond with PLAIN TEXT only, no JSON
+2. If it relates to life decisions, goals, or needs advice → Use JSON advice format
+
+Examples:
+- "hi" → "Hello! How can I help you today?" (plain text, no JSON)
+- "should I take this job?" → JSON advice format with rule analysis
+
+Respond appropriately.
 `;
 
     // Use structured format with responseFormat for cleaner JSON
@@ -229,6 +255,12 @@ Respond ONLY with a properly formatted JSON object.
     
     // Attempt to parse JSON from the response
     try {
+      // Check if response is plain text (no JSON)
+      if (!text.includes('{') && !text.includes('"type"')) {
+        // Return plain text for casual conversation
+        return text;
+      }
+      
       // Try to parse directly first
       try {
         const parsedResponse = JSON.parse(text);
@@ -239,7 +271,10 @@ Respond ONLY with a properly formatted JSON object.
                           text.match(/```\n([\s\S]*?)\n```/) ||
                           text.match(/{[\s\S]*?}/);
                           
-        if (!jsonMatch) throw new Error("No JSON found in response");
+        if (!jsonMatch) {
+          // If no JSON found, return as plain text (casual conversation)
+          return text;
+        }
         
         const jsonContent = jsonMatch[1] || jsonMatch[0];
         const parsedResponse = JSON.parse(jsonContent);
@@ -422,12 +457,26 @@ You are an AI advisor that analyzes user messages according to three life rules 
 The three life rules are:
 
 ${this.lifeRules}
+
+IMPORTANT GUIDELINES:
+1. Only provide rule alignment analysis when the user is asking for advice, making decisions, or sharing something meaningful that relates to their life rules.
+2. For casual conversation (greetings, small talk, simple questions), respond naturally without rule analysis.
+3. Casual inputs that should NOT trigger rule analysis: "hi", "hello", "thanks", "okay", "good", "yes", "no", basic acknowledgments.
+4. Rule analysis should only trigger for: specific advice requests, decision-making, sharing experiences, asking about habits/goals, moral dilemmas, life choices.
+
+For each user message, analyze which rule it relates to most strongly.
+Always respond with a properly formatted JSON object with the following structure:
 `;
 
     const agenticSystemPrompt = `
 ${baseSystemPrompt}
 
 You are now operating in AGENTIC MODE - you can both provide advice AND take actions within the My Life Code app.
+
+CRITICAL RESPONSE RULES:
+1. For casual greetings ("hi", "hello", "thanks", "okay") → Respond with PLAIN TEXT only
+2. For action requests ("create task", "change theme") → Use ACTION JSON format
+3. For advice requests ("should I...", "help me decide") → Use ADVICE JSON format
 
 Available Actions:
 1. CREATE_TASK - Create a new task/activity
@@ -444,8 +493,15 @@ Available Actions:
 12. UPDATE_SETTINGS - Update app settings
 
 You should respond with either:
-1. ADVICE ONLY - Traditional life rule analysis in JSON format
-2. ACTION - Structured action request that the app can execute
+1. CASUAL CONVERSATION - Simple text response for greetings and small talk (NO JSON)
+2. ACTION - Structured action request that the app can execute (JSON format)
+3. ADVICE - Traditional life rule analysis (JSON format)
+
+CASUAL CONVERSATION Examples (NO JSON):
+- "hi" → "Hello! How can I help you today?"
+- "hello" → "Hi there! What's on your mind?"
+- "thanks" → "You're welcome!"
+- "okay" → "Great! Anything else I can help with?"
 
 For ACTION responses, use this format:
 {
@@ -460,10 +516,6 @@ For ACTION responses, use this format:
     "confirmationMessage": "Optional confirmation message"
   }
 }
-
-Examples:
-- "Change theme to dark" → {"type": "action", "content": "Switching to dark mode!", "action": {"actionType": "CHANGE_THEME", "parameters": {"theme": "dark"}}}
-- "Create task to call mom" → {"type": "action", "content": "Creating that task!", "action": {"actionType": "CREATE_TASK", "parameters": {"title": "Call mom", "priority": "medium"}}}
 
 For ADVICE responses, use the traditional format:
 {
@@ -484,8 +536,16 @@ Be proactive and magnetic - if the user mentions wanting to do something actiona
     const systemPrompt = this.agenticMode ? agenticSystemPrompt : `
 ${baseSystemPrompt}
 
-For each user message, analyze which rule it relates to most strongly.
-Always respond with a properly formatted JSON object with the following structure:
+CRITICAL: For casual conversation (like "hi", "hello", "thanks", "okay"), respond with PLAIN TEXT only - NO JSON formatting.
+Examples:
+- "hi" → "Hello! How can I help you today?"
+- "hello" → "Hi there! What's on your mind?"
+- "thanks" → "You're welcome!"
+- "okay" → "Great! Is there anything else I can help with?"
+
+Only use JSON format for meaningful requests that need life rule analysis.
+
+For advice requests, use this JSON format:
 {
   "type": "advice",
   "ruleMatch": "Rule X: Title of the rule",
@@ -531,6 +591,22 @@ Always respond with a properly formatted JSON object with the following structur
   isAgenticModeEnabled(): boolean {
     return this.agenticMode;
   }
+
+  // Reset the chat session (clear conversation history)
+  resetSession(): void {
+    this.initializeChat();
+  }
+
+  // Get conversation history (if available)
+  getHistory(): any[] {
+    return this.chatSession ? [] : []; // Gemini doesn't expose history directly
+  }
+
+  // Clear and reinitialize session
+  clearSession(): void {
+    this.chatSession = null;
+    this.initializeChat();
+  }
   
   async sendMessage(userMessage: string): Promise<string> {
     if (!this.chatSession) {
@@ -554,6 +630,12 @@ Always respond with a properly formatted JSON object with the following structur
       const result = await this.chatSession.sendMessage(userMessage);
       const text = result.response.text();
       
+      // Check if it's a casual conversation response (plain text)
+      if (!text.includes('{') && !text.includes('"type"')) {
+        // Plain text response for casual conversation
+        return text;
+      }
+      
       // Try to parse the response as JSON
       try {
         const parsedResponse = JSON.parse(text);
@@ -568,7 +650,10 @@ Always respond with a properly formatted JSON object with the following structur
                           text.match(/```\n([\s\S]*?)\n```/) ||
                           text.match(/{[\s\S]*?}/);
                           
-        if (!jsonMatch) throw new Error("No JSON found in response");
+        if (!jsonMatch) {
+          // If no JSON found, return as plain text (casual conversation)
+          return text;
+        }
         
         const jsonContent = jsonMatch[1] || jsonMatch[0];
         const parsedResponse = JSON.parse(jsonContent);
@@ -590,8 +675,8 @@ Always respond with a properly formatted JSON object with the following structur
         ruleIcon: "alert-circle",
         alignmentStrength: "Error",
         alignmentClass: "error",
-        quote: "Fall seven times, stand up eight.",
-        advice: "I encountered an error processing your request. Let's try a fresh start. Please send your message again."
+        quote: "The obstacle is the way.",
+        advice: "I encountered an issue processing your message. Could you try rephrasing it?"
       });
     }
   }
