@@ -432,3 +432,42 @@ export const sendGoodVibesEmail = async (
     return false;
   }
 };
+
+// Delete user account completely (including auth user)
+export const deleteUserAccount = async (userId: string, userEmail: string) => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      throw new Error('No active session');
+    }
+
+    // Use the same URL and key from supabaseClient
+    const supabaseUrl = 'https://tjpaxrhqikqlhhvbzzyw.supabase.co';
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqcGF4cmhxaWtxbGhodmJ6enl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc1ODczMDMsImV4cCI6MjA2MzE2MzMwM30.MfNDGS-GnfQq6nVMZ_cCsOqMiQHRgYdtOU7oteGastI';
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/delete-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': supabaseAnonKey
+      },
+      body: JSON.stringify({
+        userId,
+        userEmail
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Error deleting user account:', error);
+    throw error;
+  }
+};

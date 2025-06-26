@@ -305,176 +305,287 @@ const CalendarTimelinePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50/30 via-white to-purple-50/30">
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Header */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row md:items-center justify-between mb-8"
+          className="mb-8"
         >
-          <div className="flex items-center gap-4 mb-4 md:mb-0">
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/dashboard">
-                <ArrowLeft className="h-5 w-5" />
-              </Link>
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-3">
-                <CalendarIcon className="h-8 w-8 text-blue-500" />
-                Calendar & Timeline
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                Visualize your diary entries and tasks across time
-              </p>
-            </div>
+          <div className="flex items-center gap-3 mb-2">
+            <CalendarIcon className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold">Calendar & Timeline</h1>
           </div>
-          
-          <div className="flex items-center gap-3">
-            <Tabs value={activeView} onValueChange={(value) => setActiveView(value as 'calendar' | 'timeline')}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="calendar" className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4" />
-                  Calendar
-                </TabsTrigger>
-                <TabsTrigger value="timeline" className="flex items-center gap-2">
-                  <Timeline className="h-4 w-4" />
-                  Timeline
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+          <p className="text-muted-foreground">
+            Visualize your diary entries and tasks across time
+          </p>
         </motion.div>
 
-        {/* Filters */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex flex-col md:flex-row gap-4 mb-6"
-        >
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search entries and tasks..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-          
-          <Select value={filterType} onValueChange={(value) => setFilterType(value as any)}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Filter by type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Items</SelectItem>
-              <SelectItem value="diary">Diary Only</SelectItem>
-              <SelectItem value="tasks">Tasks Only</SelectItem>
-            </SelectContent>
-          </Select>
+        <Tabs value={activeView} onValueChange={(value) => setActiveView(value as 'calendar' | 'timeline')} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:grid-cols-2">
+            <TabsTrigger value="calendar" className="flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4" />
+              Calendar
+            </TabsTrigger>
+            <TabsTrigger value="timeline" className="flex items-center gap-2">
+              <Timeline className="h-4 w-4" />
+              Timeline
+            </TabsTrigger>
+          </TabsList>
 
-          <Select value={filterRule} onValueChange={(value) => setFilterRule(value as any)}>
-            <SelectTrigger className="w-44">
-              <SelectValue placeholder="Filter by rule" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Rules</SelectItem>
-              <SelectItem value="1">Rule 1 - Truth</SelectItem>
-              <SelectItem value="2">Rule 2 - Integrity</SelectItem>
-              <SelectItem value="3">Rule 3 - Growth</SelectItem>
-            </SelectContent>
-          </Select>
-        </motion.div>
-
-        {/* Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {activeView === 'calendar' ? (
-            <>
-              {/* Calendar View */}
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="lg:col-span-5"
-              >
-                <Card className="shadow-lg">
-                  <CardHeader className="border-b bg-gradient-to-r from-blue-50 to-purple-50">
-                    <CardTitle className="flex items-center gap-2">
-                      <CalendarIcon className="h-5 w-5 text-blue-500" />
-                      Calendar View
-                    </CardTitle>
-                    <CardDescription>
-                      Click on any date to see your entries and tasks
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    <div className="calendar-container">
-                      <Calendar
-                        onChange={handleDateChange}
-                        value={selectedDate}
-                        tileContent={tileContent}
-                        className="w-full border-none"
+          {/* Filters Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Filter className="h-5 w-5" />
+                  Filters & Search
+                </CardTitle>
+                <CardDescription>
+                  Search and filter your diary entries and tasks
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Search</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input
+                        placeholder="Search entries and tasks..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
                       />
                     </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Type</label>
+                    <Select value={filterType} onValueChange={(value) => setFilterType(value as any)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Filter by type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Items</SelectItem>
+                        <SelectItem value="diary">Diary Only</SelectItem>
+                        <SelectItem value="tasks">Tasks Only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Rule</label>
+                    <Select value={filterRule} onValueChange={(value) => setFilterRule(value as any)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Filter by rule" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Rules</SelectItem>
+                        <SelectItem value="1">Rule 1 - Truth</SelectItem>
+                        <SelectItem value="2">Rule 2 - Integrity</SelectItem>
+                        <SelectItem value="3">Rule 3 - Growth</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Calendar View */}
+          <TabsContent value="calendar" className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+            >
+              {/* Calendar Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CalendarIcon className="h-5 w-5" />
+                    Calendar View
+                  </CardTitle>
+                  <CardDescription>
+                    Click on any date to see your entries and tasks
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <div className="calendar-container">
+                    <Calendar
+                      onChange={handleDateChange}
+                      value={selectedDate}
+                      tileContent={tileContent}
+                      className="w-full border-none"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Selected Date Details */}
-              <motion.div 
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-                className="lg:col-span-7"
-              >
-                <Card className="shadow-lg">
-                  <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-blue-50">
-                    <CardTitle className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-5 w-5 text-purple-500" />
-                        {formatDate(selectedDate.toISOString().split('T')[0])}
-                      </div>
-                      <Badge variant="secondary">
-                        {getEventsForDate(selectedDate).length} items
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={selectedDate.toISOString()}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="space-y-4"
-                      >
-                        {getEventsForDate(selectedDate).length > 0 ? (
-                          getEventsForDate(selectedDate).map((event) => (
-                            <div
-                              key={event.id}
-                              className="p-4 rounded-lg border bg-card hover:shadow-md transition-shadow"
-                            >
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      {formatDate(selectedDate.toISOString().split('T')[0])}
+                    </div>
+                    <Badge variant="secondary">
+                      {getEventsForDate(selectedDate).length} items
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={selectedDate.toISOString()}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="space-y-4"
+                    >
+                      {getEventsForDate(selectedDate).length > 0 ? (
+                        getEventsForDate(selectedDate).map((event) => (
+                          <div
+                            key={event.id}
+                            className="p-4 rounded-lg border bg-card hover:shadow-md transition-shadow"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                {event.type === 'diary' ? (
+                                  <BookOpen className="h-4 w-4 text-purple-500" />
+                                ) : event.status === 'completed' ? (
+                                  <CheckCircle className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <Circle className="h-4 w-4 text-blue-500" />
+                                )}
+                                <h4 className="font-medium">{event.title}</h4>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                {event.time && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {event.time}
+                                  </Badge>
+                                )}
+                                {event.type === 'task' && event.rule_id && (
+                                  <Badge variant="outline" className="text-xs">
+                                    Rule {event.rule_id}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <p className="text-sm text-muted-foreground mb-3 line-clamp-3">
+                              {event.content}
+                            </p>
+                            
+                            {event.type === 'task' && (
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {event.status && (
+                                  <Badge variant="outline" className={getStatusColor(event.status)}>
+                                    {event.status}
+                                  </Badge>
+                                )}
+                                {event.priority && (
+                                  <Badge variant="outline" className={getPriorityColor(event.priority)}>
+                                    {event.priority}
+                                  </Badge>
+                                )}
+                                {event.location && (
+                                  <Badge variant="outline" className="text-xs">
+                                    <MapPin className="h-3 w-3 mr-1" />
+                                    {event.location}
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                          <p className="text-lg font-medium mb-2">No events on this date</p>
+                          <p className="text-sm">Select a different date or create new entries</p>
+                        </div>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+
+          {/* Timeline View */}
+          <TabsContent value="timeline" className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Timeline className="h-5 w-5" />
+                    Timeline View
+                  </CardTitle>
+                  <CardDescription>
+                    Chronological view of all your diary entries and tasks
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="space-y-6">
+                    {timelineEvents.length > 0 ? (
+                      timelineEvents.map((event, index) => (
+                        <motion.div
+                          key={event.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="relative"
+                        >
+                          {/* Timeline line */}
+                          {index !== timelineEvents.length - 1 && (
+                            <div className="absolute left-4 top-8 w-0.5 h-full bg-border -z-10" />
+                          )}
+                          
+                          <div className="flex gap-4">
+                            {/* Timeline dot */}
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                              event.type === 'diary' 
+                                ? 'bg-purple-100 text-purple-600' 
+                                : event.status === 'completed'
+                                ? 'bg-green-100 text-green-600'
+                                : 'bg-blue-100 text-blue-600'
+                            }`}>
+                              {event.type === 'diary' ? (
+                                <BookOpen className="h-4 w-4" />
+                              ) : event.status === 'completed' ? (
+                                <CheckCircle className="h-4 w-4" />
+                              ) : (
+                                <Circle className="h-4 w-4" />
+                              )}
+                            </div>
+                            
+                            {/* Event content */}
+                            <div className="flex-1 bg-card border rounded-lg p-4 hover:shadow-md transition-shadow">
                               <div className="flex items-start justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  {event.type === 'diary' ? (
-                                    <BookOpen className="h-4 w-4 text-purple-500" />
-                                  ) : event.status === 'completed' ? (
-                                    <CheckCircle className="h-4 w-4 text-green-500" />
-                                  ) : (
-                                    <Circle className="h-4 w-4 text-blue-500" />
-                                  )}
+                                <div>
                                   <h4 className="font-medium">{event.title}</h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    {formatDate(event.date)}
+                                    {event.time && ` at ${event.time}`}
+                                  </p>
                                 </div>
                                 
                                 <div className="flex items-center gap-2">
-                                  {event.time && (
-                                    <Badge variant="outline" className="text-xs">
-                                      {event.time}
-                                    </Badge>
-                                  )}
                                   {event.type === 'task' && event.rule_id && (
                                     <Badge variant="outline" className="text-xs">
                                       Rule {event.rule_id}
@@ -490,14 +601,13 @@ const CalendarTimelinePage: React.FC = () => {
                               {event.type === 'task' && (
                                 <div className="flex items-center gap-2 flex-wrap">
                                   {event.status && (
-                                    <Badge variant="outline" className={`text-xs ${getStatusColor(event.status)}`}>
-                                      {event.status.replace('_', ' ').toUpperCase()}
+                                    <Badge variant="outline" className={getStatusColor(event.status)}>
+                                      {event.status}
                                     </Badge>
                                   )}
-                                  {event.priority && event.priority !== 'medium' && (
-                                    <Badge variant="outline" className={`text-xs ${getPriorityColor(event.priority)}`}>
-                                      <Flag className="h-3 w-3 mr-1" />
-                                      {event.priority.toUpperCase()}
+                                  {event.priority && (
+                                    <Badge variant="outline" className={getPriorityColor(event.priority)}>
+                                      {event.priority}
                                     </Badge>
                                   )}
                                   {event.location && (
@@ -506,289 +616,64 @@ const CalendarTimelinePage: React.FC = () => {
                                       {event.location}
                                     </Badge>
                                   )}
-                                  {event.is_holiday && event.holiday_name && (
-                                    <Badge variant="secondary" className="text-xs bg-red-100 text-red-700">
-                                      🎉 {event.holiday_name}
-                                    </Badge>
-                                  )}
                                 </div>
                               )}
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-8">
-                            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                              <CalendarIcon className="h-8 w-8 text-muted-foreground" />
-                            </div>
-                            <p className="text-muted-foreground">No entries for this date</p>
-                            <div className="flex gap-2 justify-center mt-4">
-                              <Button size="sm" variant="outline" asChild>
-                                <Link to="/dashboard/daily-diary">
-                                  <BookOpen className="h-4 w-4 mr-2" />
-                                  Add Diary Entry
-                                </Link>
-                              </Button>
-                              <Button size="sm" variant="outline" asChild>
-                                <Link to="/dashboard">
-                                  <Plus className="h-4 w-4 mr-2" />
-                                  Create Task
-                                </Link>
-                              </Button>
                             </div>
                           </div>
-                        )}
-                      </motion.div>
-                    </AnimatePresence>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </>
-          ) : (
-            /* Timeline View */
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="lg:col-span-12"
-            >
-              <Card className="shadow-lg">
-                <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-blue-50">
-                  <CardTitle className="flex items-center gap-2">
-                    <Timeline className="h-5 w-5 text-purple-500" />
-                    Timeline View
-                  </CardTitle>
-                  <CardDescription>
-                    Chronological view of all your diary entries and tasks
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-6">
-                  {timelineEvents.length > 0 ? (
-                    <div className="space-y-6">
-                      {timelineEvents.map((event, index) => {
-                        const ruleInfo = event.rule_id ? getRuleInfo(event.rule_id) : null;
-                        const RuleIcon = ruleInfo?.icon;
-                        
-                        return (
-                          <motion.div
-                            key={event.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            className="flex gap-4"
-                          >
-                            <div className="flex flex-col items-center">
-                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                                event.type === 'diary' 
-                                  ? 'bg-purple-100 text-purple-600' 
-                                  : event.status === 'completed'
-                                  ? 'bg-green-100 text-green-600'
-                                  : 'bg-blue-100 text-blue-600'
-                              }`}>
-                                {event.type === 'diary' ? (
-                                  <BookOpen className="h-5 w-5" />
-                                ) : event.status === 'completed' ? (
-                                  <CheckCircle className="h-5 w-5" />
-                                ) : (
-                                  <Circle className="h-5 w-5" />
-                                )}
-                              </div>
-                              {index < timelineEvents.length - 1 && (
-                                <div className="w-px h-16 bg-border mt-2" />
-                              )}
-                            </div>
-                            
-                            <div className="flex-1 pb-6">
-                              <div className="bg-card border rounded-lg p-4 hover:shadow-md transition-shadow">
-                                <div className="flex items-start justify-between mb-2">
-                                  <div>
-                                    <h3 className="font-medium">{event.title}</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                      {formatDate(event.date)}
-                                      {event.time && ` at ${event.time}`}
-                                    </p>
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-2">
-                                    {event.type === 'task' && ruleInfo && (
-                                      <div className={`p-1 rounded bg-${ruleInfo.color}-100`}>
-                                        {RuleIcon && <RuleIcon className={`h-4 w-4 text-${ruleInfo.color}-600`} />}
-                                      </div>
-                                    )}
-                                    <Badge variant="outline" className="text-xs">
-                                      {event.type === 'diary' ? 'Diary' : 'Task'}
-                                    </Badge>
-                                  </div>
-                                </div>
-                                
-                                <p className="text-sm mb-3 line-clamp-2">
-                                  {event.content}
-                                </p>
-                                
-                                {event.type === 'task' && (
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    {event.status && (
-                                      <Badge variant="outline" className={`text-xs ${getStatusColor(event.status)}`}>
-                                        {event.status.replace('_', ' ').toUpperCase()}
-                                      </Badge>
-                                    )}
-                                    {event.priority && event.priority !== 'medium' && (
-                                      <Badge variant="outline" className={`text-xs ${getPriorityColor(event.priority)}`}>
-                                        <Flag className="h-3 w-3 mr-1" />
-                                        {event.priority.toUpperCase()}
-                                      </Badge>
-                                    )}
-                                    {event.location && (
-                                      <Badge variant="outline" className="text-xs">
-                                        <MapPin className="h-3 w-3 mr-1" />
-                                        {event.location}
-                                      </Badge>
-                                    )}
-                                    {event.is_holiday && event.holiday_name && (
-                                      <Badge variant="secondary" className="text-xs bg-red-100 text-red-700">
-                                        🎉 {event.holiday_name}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                        <Timeline className="h-8 w-8 text-muted-foreground" />
+                        </motion.div>
+                      ))
+                    ) : (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <Timeline className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                        <p className="text-lg font-medium mb-2">No timeline events found</p>
+                        <p className="text-sm">Create some diary entries or tasks to see your timeline</p>
                       </div>
-                      <p className="text-muted-foreground mb-4">No timeline events found</p>
-                      <p className="text-sm text-muted-foreground mb-6">
-                        Start by creating diary entries and tasks to see your timeline
-                      </p>
-                      <div className="flex gap-2 justify-center">
-                        <Button variant="outline" asChild>
-                          <Link to="/dashboard/daily-diary">
-                            <BookOpen className="h-4 w-4 mr-2" />
-                            Write Diary Entry
-                          </Link>
-                        </Button>
-                        <Button variant="outline" asChild>
-                          <Link to="/dashboard">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Create Task
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
-          )}
-        </div>
-
-        {/* Quick Stats */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6"
-        >
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-purple-600">{diaryEntries.length}</div>
-              <p className="text-xs text-muted-foreground">Diary Entries</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{tasks.length}</div>
-              <p className="text-xs text-muted-foreground">Total Tasks</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {tasks.filter(t => t.status === 'completed').length}
-              </div>
-              <p className="text-xs text-muted-foreground">Completed</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-orange-600">
-                {tasks.filter(t => t.due_date && new Date(t.due_date) < new Date() && t.status !== 'completed').length}
-              </div>
-              <p className="text-xs text-muted-foreground">Overdue</p>
-            </CardContent>
-          </Card>
-        </motion.div>
+          </TabsContent>
+        </Tabs>
       </div>
 
+      {/* Calendar Custom Styles */}
       <style>{`
         .calendar-container .react-calendar {
           width: 100%;
-          background: white;
+          background: transparent;
           border: none;
           font-family: inherit;
         }
         
         .calendar-container .react-calendar__tile {
-          max-width: 100%;
-          padding: 10px 6px;
+          max-width: initial;
+          padding: 0.75rem 0.5rem;
           background: none;
           text-align: center;
           line-height: 16px;
           font-size: 0.875rem;
-          border-radius: 6px;
-          transition: all 0.2s ease;
         }
         
         .calendar-container .react-calendar__tile:enabled:hover,
         .calendar-container .react-calendar__tile:enabled:focus {
-          background-color: rgb(239 246 255);
-          color: rgb(59 130 246);
-        }
-        
-        .calendar-container .react-calendar__tile--now {
-          background: rgb(239 246 255);
-          color: rgb(59 130 246);
-          font-weight: 600;
+          background-color: hsl(var(--accent));
         }
         
         .calendar-container .react-calendar__tile--active {
-          background: rgb(59 130 246);
-          color: white;
-          font-weight: 600;
+          background: hsl(var(--primary));
+          color: hsl(var(--primary-foreground));
         }
         
-        .calendar-container .react-calendar__tile--active:enabled:hover,
-        .calendar-container .react-calendar__tile--active:enabled:focus {
-          background: rgb(37 99 235);
-        }
-        
-        .calendar-container .react-calendar__navigation button {
-          color: rgb(59 130 246);
-          font-size: 16px;
-          font-weight: 600;
-          background: none;
-          border: none;
-          padding: 10px;
-          border-radius: 6px;
-          transition: all 0.2s ease;
-        }
-        
-        .calendar-container .react-calendar__navigation button:enabled:hover,
-        .calendar-container .react-calendar__navigation button:enabled:focus {
-          background-color: rgb(239 246 255);
+        .calendar-container .react-calendar__tile--now {
+          background: hsl(var(--accent));
         }
         
         .calendar-container .react-calendar__month-view__weekdays {
           text-align: center;
           text-transform: uppercase;
-          font-weight: 600;
+          font-weight: bold;
           font-size: 0.75rem;
-          color: rgb(107 114 128);
           padding: 10px 0;
         }
         

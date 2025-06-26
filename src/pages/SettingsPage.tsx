@@ -18,7 +18,7 @@ import {
 import supabase from '@/lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { sendAccountDeletionEmail, sendDeveloperNotification } from '@/lib/emailService';
+import { sendAccountDeletionEmail, sendDeveloperNotification, deleteUserAccount } from '@/lib/emailService';
 
 interface UserSettings {
   id: string;
@@ -26,7 +26,7 @@ interface UserSettings {
   notifications_enabled: boolean;
   email_notifications: boolean;
   push_notifications: boolean;
-  dark_mode: boolean;
+  dark_mode: boolean | null; // Allow null for system theme
   language: string;
   timezone: string;
   auto_save: boolean;
@@ -41,12 +41,13 @@ const SettingsPage: React.FC = () => {
     notifications_enabled: true,
     email_notifications: true,
     push_notifications: false,
-    dark_mode: false,
+    dark_mode: false, // Light mode as default
     language: 'en',
     timezone: 'UTC',
     auto_save: true,
     data_retention_days: 365
   });
+  const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>('light'); // Theme state
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exportingData, setExportingData] = useState(false);  const [deletingAccount, setDeletingAccount] = useState(false);
@@ -79,6 +80,32 @@ const SettingsPage: React.FC = () => {
     getCurrentUser();
   }, [navigate]);
 
+  // Theme effect to apply classes to document
+  useEffect(() => {
+    const applyTheme = () => {
+      const root = document.documentElement;
+      
+      if (themeMode === 'system') {
+        // Use system preference
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        root.classList.toggle('dark', systemPrefersDark);
+      } else {
+        // Use explicit theme setting
+        root.classList.toggle('dark', themeMode === 'dark');
+      }
+    };
+
+    applyTheme();
+
+    // Listen for system theme changes when in system mode
+    if (themeMode === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = () => applyTheme();
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
+  }, [themeMode]);
+
   const loadUserSettings = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -94,6 +121,12 @@ const SettingsPage: React.FC = () => {
 
       if (data) {
         setSettings(data);
+        // Set theme mode based on settings
+        if (data.dark_mode === null || data.dark_mode === undefined) {
+          setThemeMode('system');
+        } else {
+          setThemeMode(data.dark_mode ? 'dark' : 'light');
+        }
       }
     } catch (error) {
       console.error('Error loading user settings:', error);
@@ -105,18 +138,26 @@ const SettingsPage: React.FC = () => {
 
     setSaving(true);
     try {
+      // Update dark_mode based on theme selection
+      const updatedSettings = {
+        ...settings,
+        dark_mode: themeMode === 'system' ? null : themeMode === 'dark'
+      };
+
       const { error } = await supabase
         .from('user_settings')
         .upsert({
           user_id: user.id,
           email: user.email,
-          ...settings,
+          ...updatedSettings,
           updated_at: new Date().toISOString()
         });
 
       if (error) {
         throw error;
       }
+
+      setSettings(updatedSettings);
 
       toast({
         title: 'Settings Saved',
@@ -200,7 +241,10 @@ const SettingsPage: React.FC = () => {
 
     setDeletingAccount(true);
     try {
-      // First, collect all user data for email
+      console.log('🔄 Starting account deletion process...');
+      
+      // Step 1: Collect all user data for email backup
+      console.log('📊 Collecting user data for backup...');
       const [contactsData, tasksData, diaryData, settingsData, profileData] = await Promise.all([
         supabase.from('contacts').select('*').eq('user_id', user.id),
         supabase.from('tasks').select('*').eq('user_id', user.id),
@@ -230,7 +274,10 @@ const SettingsPage: React.FC = () => {
           total_diary_entries: diaryData.data?.length || 0,
           account_age_days: Math.floor((new Date().getTime() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24))
         }
-      };      // Send email to the user with their data backup
+      };
+
+      // Step 2: Send email backup and notifications
+      console.log('📧 Sending data backup email...');
       try {
         // Get recent activity for developer notification
         const recentActivity = {
@@ -240,67 +287,61 @@ const SettingsPage: React.FC = () => {
 
         // Send email to user with backup using Supabase Edge Function
         await sendAccountDeletionEmail(user.email, fullDataExport, fullDataExport.summary);
+        console.log('✅ Data backup email sent successfully');
         
         // Send notification to developer
         await sendDeveloperNotification(user.email, user.id, fullDataExport.summary, recentActivity);
-
-        // Create a downloadable backup as fallback
-        const dataFileContent = JSON.stringify(fullDataExport, null, 2);
-        const blob = new Blob([dataFileContent], {
-          type: 'application/json'
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `stage_data_backup_${user.email}_${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        console.log('✅ Developer notification sent');
 
         toast({
           title: 'Data Backup Sent',
           description: 'Your complete data backup has been sent to your email address.',
         });
       } catch (emailError) {
-        console.error('Error sending deletion email:', emailError);
+        console.error('❌ Error sending deletion email:', emailError);
         toast({
           title: 'Email Error',
-          description: 'Failed to send data backup email, but a local backup file has been downloaded.',
+          description: 'Failed to send data backup email. Please try again or contact support.',
           variant: 'destructive',
         });
         // Continue with deletion even if email fails
-      }      // Now delete user data from all tables
-      const deletePromises = [
-        supabase.from('contacts').delete().eq('user_id', user.id),
-        supabase.from('tasks').delete().eq('user_id', user.id),
-        supabase.from('diary_entries').delete().eq('user_id', user.id),
-        supabase.from('user_settings').delete().eq('user_id', user.id),
-        supabase.from('user_profiles').delete().eq('user_id', user.id)
-      ];
-
-      await Promise.all(deletePromises);
-
-      // Finally, delete the user account itself
-      // Note: In a production environment, you'd typically need admin privileges
-      // For now, we'll sign them out and they'll need to contact support for full deletion
-      const { error: signOutError } = await supabase.auth.signOut();
-      if (signOutError) {
-        console.error('Error signing out:', signOutError);
       }
 
-      toast({
-        title: 'Account Deletion Completed',
-        description: 'Your account data has been deleted and backup sent to your email. Check your inbox for your data backup file.',
-      });
+      // Step 3: Delete the entire user account using the edge function
+      console.log('🗑️ Deleting user account and all data...');
+      try {
+        await deleteUserAccount(user.id, user.email);
+        console.log('✅ User account deleted successfully');
+        
+        toast({
+          title: 'Account Deleted Successfully',
+          description: 'Your account has been permanently deleted and backup sent to your email.',
+        });
+      } catch (deleteError) {
+        console.error('❌ Error deleting user account:', deleteError);
+        
+        // Fallback: just sign out if user deletion fails
+        const { error: signOutError } = await supabase.auth.signOut();
+        if (signOutError) {
+          console.error('Error signing out:', signOutError);
+        }
+        
+        toast({
+          title: 'Account Data Cleared',
+          description: 'Your data has been deleted, but account deletion failed. Please contact support to complete the process.',
+          variant: 'destructive',
+        });
+      }
 
-      // Clear any local storage
+      // Step 4: Clean up local storage and redirect
+      console.log('🧹 Cleaning up local storage...');
       localStorage.clear();
       sessionStorage.clear();
+      console.log('✅ Account deletion process completed');
 
       navigate('/login');
     } catch (error) {
-      console.error('Error deleting account:', error);
+      console.error('❌ Error deleting account:', error);
       toast({
         title: 'Deletion Failed',
         description: 'Failed to delete account. Please contact support.',
@@ -610,9 +651,9 @@ const SettingsPage: React.FC = () => {
                     <Label>Theme Preference</Label>
                     <div className="grid grid-cols-3 gap-3">
                       <Button
-                        variant={settings.dark_mode === false ? "default" : "outline"}
+                        variant={themeMode === 'light' ? "default" : "outline"}
                         className="flex items-center gap-2 h-auto p-4"
-                        onClick={() => setSettings({ ...settings, dark_mode: false })}
+                        onClick={() => setThemeMode('light')}
                       >
                         <Sun className="h-4 w-4" />
                         <div className="text-left">
@@ -621,9 +662,9 @@ const SettingsPage: React.FC = () => {
                         </div>
                       </Button>
                       <Button
-                        variant={settings.dark_mode === true ? "default" : "outline"}
+                        variant={themeMode === 'dark' ? "default" : "outline"}
                         className="flex items-center gap-2 h-auto p-4"
-                        onClick={() => setSettings({ ...settings, dark_mode: true })}
+                        onClick={() => setThemeMode('dark')}
                       >
                         <Moon className="h-4 w-4" />
                         <div className="text-left">
@@ -632,14 +673,14 @@ const SettingsPage: React.FC = () => {
                         </div>
                       </Button>
                       <Button
-                        variant="outline"
+                        variant={themeMode === 'system' ? "default" : "outline"}
                         className="flex items-center gap-2 h-auto p-4"
-                        disabled
+                        onClick={() => setThemeMode('system')}
                       >
                         <Monitor className="h-4 w-4" />
                         <div className="text-left">
                           <div className="font-medium">System</div>
-                          <div className="text-xs text-muted-foreground">Coming soon</div>
+                          <div className="text-xs text-muted-foreground">Follow OS setting</div>
                         </div>
                       </Button>
                     </div>
@@ -648,7 +689,12 @@ const SettingsPage: React.FC = () => {
                   <Alert>
                     <CheckCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Theme changes are applied immediately and saved automatically.
+                      Theme changes are applied immediately. Current theme: <strong>{themeMode}</strong>
+                      {themeMode === 'system' && (
+                        <span className="text-xs block mt-1">
+                          Following system preference: {window.matchMedia('(prefers-color-scheme: dark)').matches ? 'Dark' : 'Light'}
+                        </span>
+                      )}
                     </AlertDescription>
                   </Alert>
                 </CardContent>

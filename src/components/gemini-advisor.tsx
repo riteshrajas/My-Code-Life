@@ -2,14 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Minimize2, Maximize2, X, Bot, CheckCircle2, AlertCircle, Brain, Shield, BarChart, UserCircle } from 'lucide-react';
+import { Send, Minimize2, Maximize2, X, Bot, CheckCircle2, AlertCircle, Brain, Shield, BarChart, UserCircle, Settings, Zap, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { generateGeminiResponse } from '@/lib/gemini-config';
+import { Switch } from '@/components/ui/switch';
+import { generateGeminiResponse, GeminiChatSession } from '@/lib/gemini-config';
+import { agenticService, AgenticAction, ActionResult } from '@/lib/agenticService';
+import { toast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useNavigate } from 'react-router-dom';
 
 type Message = {
   role: 'user' | 'assistant';
   content: string;
+  actionResult?: ActionResult;
 };
 
 const LIFE_RULES = `// ...existing code...`;
@@ -20,54 +26,187 @@ export function GeminiAdvisorPanel() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [agenticMode, setAgenticMode] = useState(false);
+  const [chatSession, setChatSession] = useState<GeminiChatSession | null>(null);
+  const [pendingAction, setPendingAction] = useState<AgenticAction | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+
+  // Add navigation event listener for agentic navigation
+  useEffect(() => {
+    const handleAgenticNavigation = (event: CustomEvent) => {
+      const { route } = event.detail;
+      if (route) {
+        navigate(route);
+      }
+    };
+
+    window.addEventListener('agentic-navigation', handleAgenticNavigation as EventListener);
+    return () => {
+      window.removeEventListener('agentic-navigation', handleAgenticNavigation as EventListener);
+    };
+  }, [navigate]);
 
   // Load messages from localStorage on initial render
   useEffect(() => {
     try {
       const storedMessages = localStorage.getItem('gemini-advisor-messages');
+      const storedAgenticMode = localStorage.getItem('gemini-agentic-mode') === 'true';
+      
+      setAgenticMode(storedAgenticMode);
+      
       if (storedMessages) {
         setMessages(JSON.parse(storedMessages));
       } else {
+        const welcomeMessage = storedAgenticMode
+          ? 'Hello! I\'m your Agentic Aethera Advisor. I can provide life guidance AND take actions for you! Try asking: "Create a task to call mom" or "Change theme to dark mode". I can also give traditional advice - just ask about any situation!'
+          : 'Hello! I\'m your Aethera Advisor. Share an action or thought, and I\'ll provide feedback based on your life rules. For example, try asking: "Can I teach someone algebra?" or "I want to learn a new skill."';
+        
         setMessages([
           { 
             role: 'assistant', 
-            content: 'Hello! I\'m your Aathera Advisor. Share an action or thought, and I\'ll provide feedback based on your life rules. For example, try asking: "Can I teach someone algebra?" or "I want to learn a new skill."' 
+            content: welcomeMessage
           }
         ]);
       }
+      
+      // Initialize chat session
+      setChatSession(new GeminiChatSession(LIFE_RULES, storedAgenticMode));
     } catch (error) {
       console.error("Failed to parse messages from localStorage", error);
-      // If parsing fails, set to default
       setMessages([
         { 
           role: 'assistant', 
-          content: 'Hello! I\'m your Aathera Advisor. Share an action or thought, and I\'ll provide feedback based on your life rules. For example, try asking: "Can I teach someone algebra?" or "I want to learn a new skill."' 
+          content: 'Hello! I\'m your Aethera Advisor. Share an action or thought, and I\'ll provide feedback based on your life rules.'
         }
       ]);
+      setChatSession(new GeminiChatSession(LIFE_RULES, false));
     }
   }, []);
 
-  // Save messages to localStorage whenever they change
+  // Save messages and agentic mode to localStorage whenever they change
   useEffect(() => {
     if (messages.length > 0) {
       localStorage.setItem('gemini-advisor-messages', JSON.stringify(messages));
     }
   }, [messages]);
 
-  // Call the actual Gemini API
+  useEffect(() => {
+    localStorage.setItem('gemini-agentic-mode', agenticMode.toString());
+    if (chatSession) {
+      chatSession.setAgenticMode(agenticMode);
+    }
+  }, [agenticMode, chatSession]);
+
+  // Toggle agentic mode
+  const handleAgenticModeToggle = (enabled: boolean) => {
+    setAgenticMode(enabled);
+    
+    const modeMessage = enabled 
+      ? 'Agentic mode enabled! I can now take actions for you. Try commands like "Create a task to..." or "Change theme to..."'
+      : 'Agentic mode disabled. I\'ll focus on providing life guidance and advice.';
+    
+    setMessages(prev => [...prev, { 
+      role: 'assistant', 
+      content: modeMessage
+    }]);
+  };
+
+  // Call the actual Gemini API with agentic capabilities
   const callGeminiAPI = async (userMessage: string) => {
     setIsLoading(true);
     
     try {
-      const response = await generateGeminiResponse(userMessage, LIFE_RULES);
-      return response;
+      let response: string;
+      
+      if (chatSession) {
+        // Use chat session for context-aware responses
+        response = await chatSession.sendMessage(userMessage);
+      } else {
+        // Fallback to direct API call
+        response = await generateGeminiResponse(userMessage, LIFE_RULES, agenticMode);
+      }
+      
+      // Parse the response to check if it's an action
+      try {
+        const parsedResponse = JSON.parse(response);
+        
+        if (parsedResponse.type === 'action' && parsedResponse.action) {
+          // Handle action request
+          const agenticAction: AgenticAction = parsedResponse;
+          
+          if (agenticAction.action?.confirmationRequired) {
+            // Show confirmation dialog for dangerous actions
+            setPendingAction(agenticAction);
+            setShowConfirmDialog(true);
+            
+            // Add message to chat about pending confirmation
+            setMessages(prev => [...prev, { 
+              role: 'assistant', 
+              content: parsedResponse.content || 'Action requires confirmation.'
+            }]);
+            
+            return null; // Don't return response since we added it to messages
+          } else {
+            // Execute action immediately
+            const result = await agenticService.executeAction(agenticAction);
+            
+            // Add the assistant message with action result
+            const responseMessage = `${parsedResponse.content || 'Action requested!'}\n\n${result.success ? '✅ ' : '❌ '}${result.message}`;
+            
+            // Store action result for display
+            setMessages(prev => [...prev, { 
+              role: 'assistant', 
+              content: responseMessage,
+              actionResult: result
+            }]);
+            
+            return null; // Don't return response since we added it to messages
+          }
+        } else {
+          // Regular advice response
+          return response;
+        }
+      } catch (parseError) {
+        // If parsing fails, treat as regular advice
+        return response;
+      }
     } catch (error) {
       console.error('Error calling Gemini API:', error);
       return 'Sorry, I encountered an error processing your request. Please try again.';
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Execute pending action after confirmation
+  const executePendingAction = async () => {
+    if (pendingAction) {
+      const result = await agenticService.executeAction(pendingAction);
+      
+      const responseMessage = `${pendingAction.content || 'Action completed!'}\n\n${result.success ? '✅ ' : '❌ '}${result.message}`;
+      
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: responseMessage,
+        actionResult: result
+      }]);
+      
+      setPendingAction(null);
+      setShowConfirmDialog(false);
+    }
+  };
+
+  // Cancel pending action
+  const cancelPendingAction = () => {
+    setPendingAction(null);
+    setShowConfirmDialog(false);
+    
+    setMessages(prev => [...prev, { 
+      role: 'assistant', 
+      content: 'Action cancelled. How else can I help you?'
+    }]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,11 +219,26 @@ export function GeminiAdvisorPanel() {
     // Add user message to chat
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     
-    // Get response from Gemini
+    // Get response from Gemini (with potential action execution)
     const response = await callGeminiAPI(userMessage);
     
-    // Add assistant response to chat
-    setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+    // Only add assistant response if it wasn't already added in callGeminiAPI
+    // Check if the last message is already an assistant message with similar content
+    if (response) {
+      setMessages(prev => {
+        const lastMessage = prev[prev.length - 1];
+        const isAlreadyAdded = lastMessage && 
+          lastMessage.role === 'assistant' && 
+          (lastMessage.content === response || 
+           lastMessage.content.includes(response) ||
+           response.includes(lastMessage.content));
+        
+        if (!isAlreadyAdded) {
+          return [...prev, { role: 'assistant', content: response }];
+        }
+        return prev;
+      });
+    }
   };
 
   // Auto-scroll to bottom of chat
@@ -105,6 +259,7 @@ export function GeminiAdvisorPanel() {
   
   // Define types for the rule response
   type RuleResponse = {
+    type?: 'advice' | 'action';
     ruleMatch: string;
     ruleNumber: number;
     statusEmoji: string;
@@ -123,6 +278,11 @@ export function GeminiAdvisorPanel() {
       parsedResponse = JSON.parse(response) as RuleResponse;
     } catch (e) {
       // If parsing fails, just return the text content
+      return <div className="whitespace-pre-wrap">{response}</div>;
+    }
+    
+    // Skip rendering if it's an action type (handled elsewhere)
+    if (parsedResponse.type === 'action') {
       return <div className="whitespace-pre-wrap">{response}</div>;
     }
     
@@ -231,6 +391,44 @@ export function GeminiAdvisorPanel() {
     );
   };
 
+  // Component to render action results
+  const ActionResultCard = ({ result }: { result: ActionResult }) => {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+        className={cn(
+          "p-3 rounded-lg border flex items-start gap-3 shadow-sm",
+          result.success 
+            ? "bg-gradient-to-r from-green-50 to-green-50/50 border-green-200 dark:bg-gradient-to-r dark:from-green-950/30 dark:to-green-900/10 dark:border-green-800/50" 
+            : "bg-gradient-to-r from-red-50 to-red-50/50 border-red-200 dark:bg-gradient-to-r dark:from-red-950/30 dark:to-red-900/10 dark:border-red-800/50"
+        )}
+      >
+        <div className="flex-shrink-0 mt-0.5">
+          {result.success ? (
+            <CheckCircle2 className="h-5 w-5 text-green-500" />
+          ) : (
+            <AlertCircle className="h-5 w-5 text-red-500" />
+          )}
+        </div>
+        <div className="flex-1">
+          <p className="font-medium text-sm">
+            {result.success ? 'Action Completed' : 'Action Failed'}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {result.message}
+          </p>
+          {result.error && (
+            <p className="text-xs text-red-600 mt-1">
+              Error: {result.error}
+            </p>
+          )}
+        </div>
+      </motion.div>
+    );
+  };
+
   // Add a window resize listener for responsiveness
   useEffect(() => {
     const handleResize = () => {
@@ -284,34 +482,69 @@ export function GeminiAdvisorPanel() {
           )}
         >
           {/* Enhanced Header */}
-          <div className="p-3 border-b flex items-center justify-between bg-gradient-to-r from-card to-card/95">
-            <div className="flex items-center gap-2">
-              <div className="bg-primary/10 p-1.5 rounded-md">
-                <Bot className="h-5 w-5 text-primary" />
+          <div className="p-3 border-b bg-gradient-to-r from-card to-card/95">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "p-1.5 rounded-md transition-colors",
+                  agenticMode ? "bg-gradient-to-r from-purple-500/20 to-blue-500/20" : "bg-primary/10"
+                )}>
+                  {agenticMode ? (
+                    <Zap className="h-5 w-5 text-purple-600" />
+                  ) : (
+                    <Bot className="h-5 w-5 text-primary" />
+                  )}
+                </div>
+                <div>
+                  <h2 className="font-semibold flex items-center gap-2">
+                    Aethera Advisor
+                    {agenticMode && (
+                      <span className="text-xs bg-gradient-to-r from-purple-500 to-blue-500 text-white px-2 py-0.5 rounded-full">
+                        AGENTIC
+                      </span>
+                    )}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    {agenticMode ? 'AI assistant with actions' : 'Personal guidance system'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="font-semibold">Aethera Advisor</h2>
-                <p className="text-xs text-muted-foreground">Personal guidance system</p>
+              <div className="flex items-center gap-1">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 hover:bg-muted/80" 
+                  onClick={() => setIsMinimized(!isMinimized)}
+                >
+                  {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 hover:bg-muted/80" 
+                  onClick={() => setIsOpen(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 hover:bg-muted/80" 
-                onClick={() => setIsMinimized(!isMinimized)}
-              >
-                {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 hover:bg-muted/80" 
-                onClick={() => setIsOpen(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+            
+            {/* Agentic Mode Toggle - only show when not minimized */}
+            {!isMinimized && (
+              <div className="mt-3 flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Agentic Mode</span>
+                  <span className="text-xs text-muted-foreground">
+                    {agenticMode ? 'Can take actions' : 'Advice only'}
+                  </span>
+                </div>
+                <Switch
+                  checked={agenticMode}
+                  onCheckedChange={handleAgenticModeToggle}
+                />
+              </div>
+            )}
           </div>
           
           {/* Message area - hidden when minimized */}
@@ -347,29 +580,36 @@ export function GeminiAdvisorPanel() {
                       </div>
                     )}
                     
-                    {/* For assistant messages, try to use the card if possible */}
+                    {/* For assistant messages, handle different response types */}
                     {msg.role === 'assistant' ? (
-                      msg.content.startsWith('{') ? (
-                        <RuleResponseCard response={msg.content} />
-                      ) : (
-                        <div className="prose prose-sm dark:prose-invert">
-                          {msg.content.split('\n\n').map((paragraph: string, i: number) => {
-                            // Handle bold text with **
-                            const formattedText = paragraph.replace(
-                              /\*\*(.*?)\*\*/g, 
-                              '<strong>$1</strong>'
-                            );
-                            
-                            return (
-                              <p 
-                                key={i} 
-                                dangerouslySetInnerHTML={{ __html: formattedText }}
-                                className="mb-2 leading-relaxed"
-                              />
-                            );
-                          })}
-                        </div>
-                      )
+                      <div className="space-y-2">
+                        {msg.content.startsWith('{') ? (
+                          <RuleResponseCard response={msg.content} />
+                        ) : (
+                          <div className="prose prose-sm dark:prose-invert">
+                            {msg.content.split('\n\n').map((paragraph: string, i: number) => {
+                              // Handle bold text with **
+                              const formattedText = paragraph.replace(
+                                /\*\*(.*?)\*\*/g, 
+                                '<strong>$1</strong>'
+                              );
+                              
+                              return (
+                                <p 
+                                  key={i} 
+                                  dangerouslySetInnerHTML={{ __html: formattedText }}
+                                  className="mb-2 leading-relaxed"
+                                />
+                              );
+                            })}
+                          </div>
+                        )}
+                        
+                        {/* Show action result if available */}
+                        {msg.actionResult && (
+                          <ActionResultCard result={msg.actionResult} />
+                        )}
+                      </div>
                     ) : (
                       <p className="leading-relaxed">{msg.content}</p>
                     )}
@@ -384,7 +624,10 @@ export function GeminiAdvisorPanel() {
                   <Input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Share an action or thought..."
+                    placeholder={agenticMode 
+                      ? "Ask for advice or request actions: 'Create a task...', 'Change theme...', 'Export data'"
+                      : "Share an action or thought..."
+                    }
                     className="flex-1 bg-muted/50 focus-visible:ring-primary/30 pr-8 shadow-sm"
                     disabled={isLoading}
                   />
@@ -407,6 +650,30 @@ export function GeminiAdvisorPanel() {
           )}
         </motion.div>
       )}
+      
+      {/* Confirmation Dialog for Dangerous Actions */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              Confirm Action
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingAction?.action?.confirmationMessage || 
+               'This action requires confirmation. Are you sure you want to proceed?'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelPendingAction}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={executePendingAction}>
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AnimatePresence>
   );
 }

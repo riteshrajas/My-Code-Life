@@ -1,9 +1,0 @@
-# SPA redirect - serve index.html for all routes
-/*    /index.html   200
-
-# Force HTTPS redirect (uncomment for production)
-# http://your-domain.com/*  https://your-domain.com/:splat  301!
-# http://stage-app.pages.dev/*  https://stage-app.pages.dev/:splat  301!
-
-# API routes for future Cloudflare Functions
-# /api/*  /functions/:splat  200

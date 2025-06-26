@@ -94,33 +94,119 @@ export function createGeminiChatSession(systemPrompt: string): ChatSession | nul
   });
 }
 
-// Function to generate response from Gemini using the life rules context
-export async function generateGeminiResponse(userMessage: string, lifeRules: string): Promise<string> {
+// Function to generate response from Gemini using the life rules context with agentic capabilities
+export async function generateGeminiResponse(userMessage: string, lifeRules: string, agenticMode: boolean = false): Promise<string> {
   const model = getGeminiModel();
   if (!model) return 'API connection error. Please check your API key configuration.';
   
   try {
-    const systemPrompt = `
+    const baseSystemPrompt = `
 You are an AI advisor that analyzes user messages according to three life rules that guide them.
 The three life rules are:
 
 ${lifeRules}
-
-For each user message, analyze which rule it relates to most strongly.
-Always respond with a properly formatted JSON object with the following structure:
-{
-  "ruleMatch": "Rule X: Title of the rule",
-  "ruleNumber": X,
-  "statusEmoji": "✅ or ⚠️",
-  "ruleIcon": "brain for rule 1, shield for rule 2, or bar-chart for rule 3",
-  "alignmentStrength": "Strong or Potential",
-  "alignmentClass": "success or warning",
-  "quote": "A relevant quote related to the rule",
-  "advice": "Personalized advice based on the rule and user message"
-}
 `;
 
-    const prompt = `
+    const agenticSystemPrompt = `
+${baseSystemPrompt}
+
+You are now operating in AGENTIC MODE - you can both provide advice AND take actions within the My Life Code app.
+
+Available Actions:
+1. CREATE_TASK - Create a new task/activity
+2. CREATE_HABIT - Create a recurring habit
+3. DELETE_TASK - Delete an existing task (requires task ID)
+4. UPDATE_TASK - Update an existing task (requires task ID)
+5. CHANGE_THEME - Change app theme (light/dark/system)
+6. UPDATE_PROFILE - Update user profile information
+7. DELETE_FAMILY_MEMBER - Remove a family member (requires confirmation)
+8. UPDATE_FAMILY_STATUS - Update family member status
+9. NAVIGATE_TO_PAGE - Navigate to a specific app page
+10. EXPORT_DATA - Export user data
+11. CREATE_DIARY_ENTRY - Create a diary/journal entry
+12. UPDATE_SETTINGS - Update app settings
+
+You should respond with either:
+1. ADVICE ONLY - Traditional life rule analysis in JSON format
+2. ACTION - Structured action request that the app can execute
+
+For ACTION responses, use this format:
+{
+  "type": "action",
+  "content": "I'll help you with that! [explanation of what you're doing]",
+  "action": {
+    "actionType": "CHANGE_THEME",
+    "parameters": {
+      "theme": "dark"
+    },
+    "confirmationRequired": false
+  }
+}
+
+Examples of ACTION responses:
+- User: "Change theme to dark" → 
+  {
+    "type": "action",
+    "content": "I'll switch the app to dark mode for you!",
+    "action": {
+      "actionType": "CHANGE_THEME",
+      "parameters": { "theme": "dark" },
+      "confirmationRequired": false
+    }
+  }
+
+- User: "Create a task to call mom tomorrow" →
+  {
+    "type": "action", 
+    "content": "I'll create that task for you!",
+    "action": {
+      "actionType": "CREATE_TASK",
+      "parameters": {
+        "title": "Call mom",
+        "dueDate": "2025-06-27",
+        "priority": "medium",
+        "ruleAlignment": 2
+      },
+      "confirmationRequired": false
+    }
+  }
+
+For ADVICE responses, use the traditional format:
+{
+  "type": "advice",
+  "ruleMatch": "Rule X: Title",
+  "ruleNumber": X,
+  "statusEmoji": "✅ or ⚠️",
+  "ruleIcon": "brain/shield/bar-chart",
+  "alignmentStrength": "Strong/Potential",
+  "alignmentClass": "success/warning",
+  "quote": "Relevant quote",
+  "advice": "Personalized advice"
+}
+
+Examples of ACTION triggers:
+- "Create a task to..." → CREATE_TASK
+- "Add a habit for..." → CREATE_HABIT  
+- "Delete the task..." → DELETE_TASK (needs confirmation)
+- "Change theme to dark" → CHANGE_THEME with {"theme": "dark"}
+- "Switch to light mode" → CHANGE_THEME with {"theme": "light"}
+- "Update my profile..." → UPDATE_PROFILE
+- "Go to tasks page" → NAVIGATE_TO_PAGE with {"page": "tasks"}
+- "Export my data" → EXPORT_DATA
+- "Create a diary entry about..." → CREATE_DIARY_ENTRY
+
+Be proactive and magnetic - if the user mentions wanting to do something actionable, offer to do it for them!
+`;
+
+    const systemPrompt = agenticMode ? agenticSystemPrompt : baseSystemPrompt;
+
+    const prompt = agenticMode ? `
+Analyze the following user message and determine if it requires ADVICE or ACTION:
+"${userMessage}"
+
+If it's an action request, execute it. If it's seeking advice, provide life rule analysis.
+Respond with the appropriate JSON format.
+` : `
 Analyze how the following user message relates to the three life rules:
 "${userMessage}"
 
@@ -318,26 +404,90 @@ Life Rules for alignment:
   }
 }
 
-// Chat session class for ongoing conversations
+// Chat session class for ongoing conversations with agentic capabilities
 export class GeminiChatSession {
   private chatSession: ChatSession | null = null;
   private lifeRules: string;
+  private agenticMode: boolean;
   
-  constructor(lifeRules: string) {
+  constructor(lifeRules: string, agenticMode: boolean = false) {
     this.lifeRules = lifeRules;
+    this.agenticMode = agenticMode;
     this.initializeChat();
   }
   
   private initializeChat(): void {
-    const systemPrompt = `
+    const baseSystemPrompt = `
 You are an AI advisor that analyzes user messages according to three life rules that guide them.
 The three life rules are:
 
 ${this.lifeRules}
+`;
+
+    const agenticSystemPrompt = `
+${baseSystemPrompt}
+
+You are now operating in AGENTIC MODE - you can both provide advice AND take actions within the My Life Code app.
+
+Available Actions:
+1. CREATE_TASK - Create a new task/activity
+2. CREATE_HABIT - Create a recurring habit
+3. DELETE_TASK - Delete an existing task (requires task ID)
+4. UPDATE_TASK - Update an existing task (requires task ID)
+5. CHANGE_THEME - Change app theme (light/dark/system)
+6. UPDATE_PROFILE - Update user profile information
+7. DELETE_FAMILY_MEMBER - Remove a family member (requires confirmation)
+8. UPDATE_FAMILY_STATUS - Update family member status
+9. NAVIGATE_TO_PAGE - Navigate to a specific app page
+10. EXPORT_DATA - Export user data
+11. CREATE_DIARY_ENTRY - Create a diary/journal entry
+12. UPDATE_SETTINGS - Update app settings
+
+You should respond with either:
+1. ADVICE ONLY - Traditional life rule analysis in JSON format
+2. ACTION - Structured action request that the app can execute
+
+For ACTION responses, use this format:
+{
+  "type": "action",
+  "content": "I'll help you with that! [explanation of what you're doing]",
+  "action": {
+    "actionType": "CHANGE_THEME",
+    "parameters": {
+      "theme": "dark"
+    },
+    "confirmationRequired": false,
+    "confirmationMessage": "Optional confirmation message"
+  }
+}
+
+Examples:
+- "Change theme to dark" → {"type": "action", "content": "Switching to dark mode!", "action": {"actionType": "CHANGE_THEME", "parameters": {"theme": "dark"}}}
+- "Create task to call mom" → {"type": "action", "content": "Creating that task!", "action": {"actionType": "CREATE_TASK", "parameters": {"title": "Call mom", "priority": "medium"}}}
+
+For ADVICE responses, use the traditional format:
+{
+  "type": "advice",
+  "ruleMatch": "Rule X: Title",
+  "ruleNumber": X,
+  "statusEmoji": "✅ or ⚠️",
+  "ruleIcon": "brain/shield/bar-chart",
+  "alignmentStrength": "Strong/Potential",
+  "alignmentClass": "success/warning",
+  "quote": "Relevant quote",
+  "advice": "Personalized advice"
+}
+
+Be proactive and magnetic - if the user mentions wanting to do something actionable, offer to do it for them!
+`;
+
+    const systemPrompt = this.agenticMode ? agenticSystemPrompt : `
+${baseSystemPrompt}
 
 For each user message, analyze which rule it relates to most strongly.
 Always respond with a properly formatted JSON object with the following structure:
 {
+  "type": "advice",
   "ruleMatch": "Rule X: Title of the rule",
   "ruleNumber": X,
   "statusEmoji": "✅ or ⚠️",
@@ -368,12 +518,26 @@ Always respond with a properly formatted JSON object with the following structur
       }
     });
   }
+
+  // Enable or disable agentic mode
+  setAgenticMode(enabled: boolean): void {
+    if (this.agenticMode !== enabled) {
+      this.agenticMode = enabled;
+      this.initializeChat(); // Reinitialize with new mode
+    }
+  }
+
+  // Check if agentic mode is enabled
+  isAgenticModeEnabled(): boolean {
+    return this.agenticMode;
+  }
   
   async sendMessage(userMessage: string): Promise<string> {
     if (!this.chatSession) {
       this.initializeChat();
       if (!this.chatSession) {
         return JSON.stringify({
+          type: "advice",
           ruleMatch: "Connection Error",
           ruleNumber: 0,
           statusEmoji: "⚠️",
@@ -393,6 +557,10 @@ Always respond with a properly formatted JSON object with the following structur
       // Try to parse the response as JSON
       try {
         const parsedResponse = JSON.parse(text);
+        // Ensure type is set for backwards compatibility
+        if (!parsedResponse.type) {
+          parsedResponse.type = "advice";
+        }
         return JSON.stringify(parsedResponse);
       } catch (parseError) {
         // Try to extract JSON from text if direct parsing fails
@@ -404,6 +572,10 @@ Always respond with a properly formatted JSON object with the following structur
         
         const jsonContent = jsonMatch[1] || jsonMatch[0];
         const parsedResponse = JSON.parse(jsonContent);
+        // Ensure type is set
+        if (!parsedResponse.type) {
+          parsedResponse.type = "advice";
+        }
         return JSON.stringify(parsedResponse);
       }
     } catch (error) {
@@ -411,6 +583,7 @@ Always respond with a properly formatted JSON object with the following structur
       // If there's an error with the chat session, try to reinitialize
       this.initializeChat();
       return JSON.stringify({
+        type: "advice",
         ruleMatch: "Processing Error",
         ruleNumber: 0,
         statusEmoji: "⚠️",

@@ -3,14 +3,11 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "node scripts/check-env.js && vite",
+    "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "setup-env": "node scripts/check-env.js",
     "deploy:cloudflare": "npm run build && wrangler pages deploy dist --project-name stage-app",
     "deploy:auto": "node -e \"require('child_process').execSync(process.platform === 'win32' ? 'powershell -ExecutionPolicy Bypass -File scripts/deploy-cloudflare-auto.ps1' : 'bash scripts/deploy-cloudflare-auto.sh', {stdio: 'inherit'})\"",
-    "android": "npx react-native run-android",
-    "ios": "npx react-native run-ios",
     "start": "npx react-native start"
   },
   "dependencies": {
