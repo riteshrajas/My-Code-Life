@@ -104,10 +104,16 @@ export function GeminiAdvisorPanel() {
     setAgenticMode(enabled);
     
     // Update the chat session's agentic mode if it exists
-    if (chatSession && typeof chatSession.setAgenticMode === 'function') {
-      chatSession.setAgenticMode(enabled);
+    if (chatSession && chatSession.setAgenticMode && typeof chatSession.setAgenticMode === 'function') {
+      try {
+        chatSession.setAgenticMode(enabled);
+      } catch (error) {
+        console.error('Error updating session agentic mode:', error);
+        // Create new session with the correct mode if update fails
+        setChatSession(new GeminiChatSession(LIFE_RULES, enabled));
+      }
     } else {
-      // Create new session with the correct mode if none exists
+      // Create new session with the correct mode if none exists or method is not available
       setChatSession(new GeminiChatSession(LIFE_RULES, enabled));
     }
     
@@ -126,8 +132,12 @@ export function GeminiAdvisorPanel() {
     setMessages([]);
     
     // Clear chat session if it exists and has the method
-    if (chatSession && typeof chatSession.clearSession === 'function') {
-      chatSession.clearSession();
+    if (chatSession && chatSession.clearSession && typeof chatSession.clearSession === 'function') {
+      try {
+        chatSession.clearSession();
+      } catch (error) {
+        console.error('Error clearing chat session:', error);
+      }
     }
     
     // Add welcome message
@@ -147,10 +157,16 @@ export function GeminiAdvisorPanel() {
   // Start new session
   const handleNewSession = () => {
     // Reset existing session if it exists and has the method
-    if (chatSession && typeof chatSession.resetSession === 'function') {
-      chatSession.resetSession();
+    if (chatSession && chatSession.resetSession && typeof chatSession.resetSession === 'function') {
+      try {
+        chatSession.resetSession();
+      } catch (error) {
+        console.error('Error resetting chat session:', error);
+        // Create new session if reset fails
+        setChatSession(new GeminiChatSession(LIFE_RULES, agenticMode));
+      }
     } else {
-      // Create new session if none exists
+      // Create new session if none exists or method is not available
       setChatSession(new GeminiChatSession(LIFE_RULES, agenticMode));
     }
     handleClearHistory();
