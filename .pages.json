@@ -1,0 +1,10 @@
+{
+  "build": {
+    "command": "npm run build",
+    "cwd": "/",
+    "publish": "dist"
+  },
+  "env": {
+    "NODE_VERSION": "18"
+  }
+}

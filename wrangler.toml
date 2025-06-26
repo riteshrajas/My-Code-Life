@@ -1,0 +1,16 @@
+name = "stage-app"
+compatibility_date = "2024-12-01"
+pages_build_output_dir = "dist"
+
+[env.production]
+compatibility_date = "2024-12-01"
+
+[env.staging]
+compatibility_date = "2024-12-01"
+
+# Optional: Add custom domains later
+# [env.production]
+# routes = [
+#   { pattern = "yourdomain.com", custom_domain = true },
+#   { pattern = "www.yourdomain.com", custom_domain = true }
+# ]

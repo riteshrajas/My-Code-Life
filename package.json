@@ -7,6 +7,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "setup-env": "node scripts/check-env.js",
+    "deploy:cloudflare": "npm run build && wrangler pages deploy dist --project-name stage-app",
     "android": "npx react-native run-android",
     "ios": "npx react-native run-ios",
     "start": "npx react-native start"
