@@ -389,52 +389,95 @@ const DashboardPage = () => {
             </div>
           </div>
 
-        {/* Statistics Cards */}
+        {/* Interactive Statistics Dashboard */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card>
+          <Card className="group hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Activities Completed
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                <span>Progress Overview</span>
+                <Badge variant="outline" className="bg-green-50 text-green-700">Today</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold flex items-center">
-                <CheckCircle className="h-5 w-5 mr-2 text-green-500" />
-                {stats.totalCompleted} / {activities.length}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    <span className="text-2xl font-bold">{stats.totalCompleted}</span>
+                    <span className="text-muted-foreground">of</span>
+                    <span className="text-2xl font-bold">{activities.length}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm text-muted-foreground">
+                      {Math.round((stats.totalCompleted / Math.max(activities.length, 1)) * 100)}%
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-500"
+                    style={{ width: `${(stats.totalCompleted / Math.max(activities.length, 1)) * 100}%` }}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="group hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Rule Distribution
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                <span>Rule Distribution</span>
+                <BarChart2 className="h-4 w-4 text-muted-foreground" />
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center space-x-4">
+              <div className="space-y-3">
                 {stats.ruleDistribution.map((count, idx) => (
-                  <div key={idx} className="flex items-center">
-                    <div 
-                      className={`h-3 w-3 rounded-full bg-${getRuleColor(idx+1)}-500 mr-1`}
-                    />
-                    <span>{count}</span>
+                  <div key={idx} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">Rule {idx + 1}</span>
+                      <span className="text-muted-foreground">{count} tasks</span>
+                    </div>
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full transition-all duration-500`}
+                        style={{
+                          width: `${(count / Math.max(...stats.ruleDistribution)) * 100}%`,
+                          backgroundColor: idx === 0 ? '#3b82f6' : idx === 1 ? '#10b981' : '#8b5cf6'
+                        }}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="group hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Last Activity
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                <span>Activity Timeline</span>
+                <Badge variant="outline" className="bg-blue-50 text-blue-700">Live</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-lg font-medium flex items-center">
-                <Clock className="h-5 w-5 mr-2 text-blue-500" />
-                {new Date().toLocaleDateString()}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Clock className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">Last Updated</div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date().toLocaleTimeString()} - {new Date().toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+                <div className="pt-2 border-t">
+                  <div className="text-xs text-muted-foreground">
+                    Next activity in: {activities.length > 0 ? '2 hours' : 'No upcoming activities'}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

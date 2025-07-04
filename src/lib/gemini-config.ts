@@ -2,7 +2,6 @@
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory, GenerativeModel, ChatSession } from '@google/generative-ai';
 
 // Use environment variable for API key instead of hardcoding it
-export const GEMINI_API_KEY = 'AIzaSyDD7DLIg_k_RB7m13knouKclUMGJzYAP98';
 export const MODEL_NAME = 'gemini-2.0-flash'; // Using the Gemini 2.0 Flash model
 
 // Create a singleton instance of the Gemini API client
@@ -10,7 +9,7 @@ let geminiClient: GoogleGenerativeAI | null = null;
 
 // Helper function to check if API key is configured
 export function isApiKeyConfigured(): boolean {
-  return Boolean(GEMINI_API_KEY) && GEMINI_API_KEY.length > 0;
+  return Boolean(import.meta.env.VITE_GEMINI_API_KEY) && import.meta.env.VITE_GEMINI_API_KEY.length > 0;
 }
 
 // Get or create the Gemini API client
@@ -22,7 +21,7 @@ export function getGeminiClient(): GoogleGenerativeAI | null {
   
   if (!geminiClient) {
     try {
-      geminiClient = new GoogleGenerativeAI(GEMINI_API_KEY);
+      geminiClient = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
     } catch (error) {
       console.error('Error initializing Gemini API client:', error);
       return null;

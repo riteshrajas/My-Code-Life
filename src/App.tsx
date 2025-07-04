@@ -16,7 +16,7 @@ import supabase  from '@/lib/supabaseClient';
 import { GeminiAdvisorPanel } from '@/components/gemini-advisor';
 import RootRedirect from '@/components/RootRedirect';
 import CalendarTimelinePage from '@/pages/CalendarTimelinePage';
-
+console.log(import.meta.env)
 // ProtectedRoute component to handle authentication
 const ProtectedRoute = () => {
   const [session, setSession] = useState<any>(null);
