@@ -108,35 +108,38 @@ const DashboardPage = () => {
   }, []);
 
   useEffect(() => {
-    // Fetch diary entries, tasks, and notes from the backend
-    const fetchEvents = async () => {
-      const diaryEntries = await fetch('/api/diary-entries').then(res => res.json());
-      const tasks = await fetch('/api/tasks').then(res => res.json());
-      const notes = await fetch('/api/notes').then(res => res.json());
+    // Note: These API calls are not needed in a Vite frontend app
+    // Data is already loaded through fetchActivities function
+    // Commenting out to prevent JSON parsing errors
+    
+    // const fetchEvents = async () => {
+    //   const diaryEntries = await fetch('/api/diary-entries').then(res => res.json());
+    //   const tasks = await fetch('/api/tasks').then(res => res.json());
+    //   const notes = await fetch('/api/notes').then(res => res.json());
 
-      // Combine all events
-      const combinedEvents = [
-        ...diaryEntries.map((entry: { entry_date: any; content: any; }) => ({
-          date: entry.entry_date,
-          type: 'Diary Entry',
-          content: entry.content
-        })),
-        ...tasks.map((task: { due_date: any; title: any; }) => ({
-          date: task.due_date,
-          type: 'Task',
-          content: task.title
-        })),
-        ...notes.map((note: { date: any; content: any; }) => ({
-          date: note.date,
-          type: 'Note',
-          content: note.content
-        }))
-      ];
+    //   // Combine all events
+    //   const combinedEvents = [
+    //     ...diaryEntries.map((entry: { entry_date: any; content: any; }) => ({
+    //       date: entry.entry_date,
+    //       type: 'Diary Entry',
+    //       content: entry.content
+    //     })),
+    //     ...tasks.map((task: { due_date: any; title: any; }) => ({
+    //       date: task.due_date,
+    //       type: 'Task',
+    //       content: task.title
+    //     })),
+    //     ...notes.map((note: { date: any; content: any; }) => ({
+    //       date: note.date,
+    //       type: 'Note',
+    //       content: note.content
+    //     }))
+    //   ];
 
-      setEvents(combinedEvents);
-    };
+    //   setEvents(combinedEvents);
+    // };
 
-    fetchEvents();
+    // fetchEvents();
   }, []);
 
   const fetchActivities = async (userId: string) => {

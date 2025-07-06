@@ -87,6 +87,9 @@ const HierarchyPage: React.FC = () => {
 
   // Load contacts on component mount
   useEffect(() => {
+    // Reset server context for react-beautiful-dnd to prevent duplicate key issues
+    resetServerContext();
+    
     const fetchUserAndContacts = async () => {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();

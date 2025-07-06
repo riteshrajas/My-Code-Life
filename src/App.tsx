@@ -16,7 +16,8 @@ import supabase  from '@/lib/supabaseClient';
 import { GeminiAdvisorPanel } from '@/components/gemini-advisor';
 import RootRedirect from '@/components/RootRedirect';
 import CalendarTimelinePage from '@/pages/CalendarTimelinePage';
-console.log(import.meta.env)
+// console.log(import.meta.env)
+
 // ProtectedRoute component to handle authentication
 const ProtectedRoute = () => {
   const [session, setSession] = useState<any>(null);
@@ -68,7 +69,9 @@ function App() {
   return (
     <Router>
       <div className="flex h-screen">
-        <div className="flex-1 flex flex-col overflow-hidden">          <Routes>            <Route path="/login" element={<LoginPage />} />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
             {/* Family Portal Routes */}
             <Route path="/ritesh" element={<FamilyLoginPage />} />
             <Route path="/family/register" element={<FamilyRegistrationPage />} />
