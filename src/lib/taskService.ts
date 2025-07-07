@@ -54,24 +54,91 @@ export async function createTask(taskData: Partial<Task>): Promise<Task | null> 
       throw new Error('User not authenticated');
     }
 
-    // Insert task
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert([
-        {
-          ...taskData,
-          user_id: user.id
+    // If it's a recurring habit, create multiple tasks
+    if (taskData.is_habit && taskData.habit_frequency === 'daily' && taskData.due_date) {
+        const tasksToCreate = [];
+        const startDate = new Date();
+        const endDate = new Date(taskData.due_date);
+        
+        // Extract details from gemini_analysis if available
+        const analysis = taskData.gemini_analysis || {};
+        const description = analysis.description || taskData.description || '';
+
+        const taskDetails = {
+            ...taskData,
+            priority: analysis.priority || taskData.priority || 'medium',
+            main_topic: analysis.category?.split('→')[0]?.trim() || taskData.main_topic || 'Habit',
+            sub_topic: analysis.category?.split('→')[1]?.trim() || taskData.sub_topic || 'General',
+            location: analysis.location || taskData.location || null,
+            user_id: user.id,
+        };
+
+        // Create a task for each day from today until the due date
+        for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
+            // Create tasks for each time slot
+            const timeSlots = description.match(/(\d{1,2}:\d{2}\s?[AP]M\s?to\s?\d{1,2}:\d{2}\s?[AP]M)/g) || [];
+            
+            if (timeSlots.length > 0) {
+                for (const slot of timeSlots) {
+                    const [startTime, endTime] = slot.split(' to ');
+                    tasksToCreate.push({
+                        ...taskDetails,
+                        title: `${taskData.title} - Study Session`,
+                        description: `Study from ${startTime} to ${endTime}`,
+                        due_date: new Date(d).toISOString().split('T')[0],
+                        due_time: startTime.trim(),
+                    });
+                }
+            } else {
+                tasksToCreate.push({
+                    ...taskDetails,
+                    title: `${taskData.title}`,
+                    description: description,
+                    due_date: new Date(d).toISOString().split('T')[0],
+                });
+            }
         }
-      ])
-      .select()
-      .single();
+        
+        // Create a separate task for the final exam
+        if (analysis.due_date && analysis.due_time) {
+             tasksToCreate.push({
+                ...taskDetails,
+                title: `${taskData.title} - FINAL EXAM`,
+                description: `Check-in at ${analysis.due_time} for the exam from 9:00 AM to 12:00 PM.`,
+                due_date: analysis.due_date,
+                due_time: analysis.due_time,
+                is_habit: false, // This is a one-time event
+             });
+        }
 
-    if (error) {
-      console.error('Error creating task:', error);
-      throw error;
+
+      const { data, error } = await supabase.from('tasks').insert(tasksToCreate).select();
+      
+      if (error) {
+        console.error('Error creating recurring tasks:', error);
+        throw error;
+      }
+      return data?.[0] ?? null; // Return the first created task
+
+    } else {
+        // Insert single task
+        const { data, error } = await supabase
+          .from('tasks')
+          .insert([
+            {
+              ...taskData,
+              user_id: user.id
+            }
+          ])
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error creating task:', error);
+          throw error;
+        }
+        return data;
     }
-
-    return data;
   } catch (error) {
     console.error('Error in createTask:', error);
     return null;

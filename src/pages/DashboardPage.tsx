@@ -253,16 +253,19 @@ const DashboardPage = () => {
 
   const getFilteredActivities = () => {
     const today = new Date().toISOString().split('T')[0];
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    const weekStart = oneWeekAgo.toISOString().split('T')[0];
+    const oneWeekAhead = new Date();
+    oneWeekAhead.setDate(oneWeekAhead.getDate() + 7);
+    const weekEnd = oneWeekAhead.toISOString().split('T')[0];
     
     switch (activeTab) {
       case 'today':
-        return activities.filter(a => a.date === today);
+        // Show activities for today and future
+        return activities.filter(a => a.date >= today);
       case 'week':
-        return activities.filter(a => a.date >= weekStart);
+        // Show activities from today through 7 days ahead
+        return activities.filter(a => a.date >= today && a.date <= weekEnd);
       default:
+        // Show all activities (including future)
         return activities;
     }
   };
