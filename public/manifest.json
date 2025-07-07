@@ -1,7 +1,7 @@
 {
-  "name": "My Life Code",
-  "short_name": "Stage",
-  "description": "Your Personal Life Journey",
+  "name": "LifePilot",
+  "short_name": "LifePilot",
+  "description": "Your Personal Life Journey and AI Assistant",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

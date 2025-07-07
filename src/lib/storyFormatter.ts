@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI("AIzaSyDD7DLIg_k_RB7m13knouKclUMGJzYAP98");
 
 /**
  * Formats a raw story text into a well-structured diary entry
@@ -9,9 +9,6 @@ const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
  * @returns {Promise<string>} - The formatted diary entry
  */
 export async function reformatStory(storyText: string): Promise<string> {
-  if (!import.meta.env.VITE_GEMINI_API_KEY) {
-    throw new Error("Gemini API key is missing. Please check your environment variables.");
-  }
 
   try {
     // Get the generative model

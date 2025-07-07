@@ -105,7 +105,7 @@ export default function DashboardLayout({
             <div className="grid gap-4 py-4">
               <Link to="/dashboard" className="flex items-center gap-2 text-lg font-semibold">
                 <Book className="h-5 w-5" />
-                <span>My Life Code</span>
+                <span>LifePilot</span>
               </Link>
               <div className="grid gap-2">
                 <Link to="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
@@ -138,7 +138,7 @@ export default function DashboardLayout({
         <div className="hidden md:flex items-center gap-6">
           <Link to="/dashboard" className="flex items-center gap-2 font-semibold">
             <Book className="h-5 w-5" />
-            <span>My Life Code</span>
+            <span>LifePilot</span>
           </Link>
           <nav className="hidden md:flex items-center gap-6">
             <Link to="/dashboard" className={`text-sm ${location.pathname === '/dashboard' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>

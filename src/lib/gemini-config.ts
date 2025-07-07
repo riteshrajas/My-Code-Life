@@ -9,7 +9,7 @@ let geminiClient: GoogleGenerativeAI | null = null;
 
 // Helper function to check if API key is configured
 export function isApiKeyConfigured(): boolean {
-  return Boolean(import.meta.env.VITE_GEMINI_API_KEY) && import.meta.env.VITE_GEMINI_API_KEY.length > 0;
+  return Boolean("AIzaSyDD7DLIg_k_RB7m13knouKclUMGJzYAP98") && "AIzaSyDD7DLIg_k_RB7m13knouKclUMGJzYAP98".length > 0;
 }
 
 // Get or create the Gemini API client
@@ -21,7 +21,7 @@ export function getGeminiClient(): GoogleGenerativeAI | null {
   
   if (!geminiClient) {
     try {
-      geminiClient = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+      geminiClient = new GoogleGenerativeAI("AIzaSyDD7DLIg_k_RB7m13knouKclUMGJzYAP98");
     } catch (error) {
       console.error('Error initializing Gemini API client:', error);
       return null;
@@ -118,7 +118,7 @@ For advice-worthy content, respond with the JSON format including rule analysis.
     const agenticSystemPrompt = `
 ${baseSystemPrompt}
 
-You are now operating in AGENTIC MODE - you can both provide advice AND take actions within the My Life Code app.
+You are now operating in AGENTIC MODE - you can both provide advice AND take actions within the LifePilot app.
 
 Available Actions:
 1. CREATE_TASK - Create a new task/activity
@@ -470,7 +470,7 @@ Always respond with a properly formatted JSON object with the following structur
     const agenticSystemPrompt = `
 ${baseSystemPrompt}
 
-You are now operating in AGENTIC MODE - you can both provide advice AND take actions within the My Life Code app.
+You are now operating in AGENTIC MODE - you can both provide advice AND take actions within the LifePilot app.
 
 CRITICAL RESPONSE RULES:
 1. For casual greetings ("hi", "hello", "thanks", "okay") → Respond with PLAIN TEXT only

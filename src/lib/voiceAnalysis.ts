@@ -4,11 +4,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 let genAI: GoogleGenerativeAI | null = null;
 
-if (import.meta.env.VITE_GEMINI_API_KEY) {
-  genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
-} else {
-  console.warn('Gemini API key not found. Voice AI analysis will be disabled.');
-}
+  genAI = new GoogleGenerativeAI("AIzaSyDD7DLIg_k_RB7m13knouKclUMGJzYAP98");
+
 
 interface VoiceAnalysisResult {
   summary: string;

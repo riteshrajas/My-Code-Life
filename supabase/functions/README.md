@@ -1,6 +1,6 @@
 # Edge Functions
 
-This directory contains Supabase Edge Functions for the My Life Code app.
+This directory contains Supabase Edge Functions for the LifePilot app.
 
 ## send-email Function
 
@@ -30,7 +30,7 @@ This function handles sending emails using SMTP, including support for attachmen
    - `SMTP_USER`: Your email username
    - `SMTP_PASSWORD`: Your email password or app-specific password
    - `FROM_EMAIL`: Email address to send from (optional, defaults to SMTP_USER)
-   - `FROM_NAME`: Display name for sender (optional, defaults to "My Life Code")
+   - `FROM_NAME`: Display name for sender (optional, defaults to "LifePilot")
 
 ### Environment Variables Required
 
@@ -39,7 +39,7 @@ This function handles sending emails using SMTP, including support for attachmen
 - `SMTP_USER`: Email username/address for authentication
 - `SMTP_PASSWORD`: Email password or app-specific password
 - `FROM_EMAIL`: Email address to send from (optional, defaults to SMTP_USER)
-- `FROM_NAME`: Display name for the sender (optional, defaults to "My Life Code")
+- `FROM_NAME`: Display name for the sender (optional, defaults to "LifePilot")
 
 ### Usage
 

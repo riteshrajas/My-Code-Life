@@ -8,7 +8,7 @@ const SMTP_PORT = parseInt(Deno.env.get('SMTP_PORT') || '587')
 const SMTP_USER = Deno.env.get('SMTP_USER')
 const SMTP_PASSWORD = Deno.env.get('SMTP_PASSWORD')
 const FROM_EMAIL = Deno.env.get('FROM_EMAIL') || SMTP_USER
-const FROM_NAME = Deno.env.get('FROM_NAME') || 'My Life Code'
+const FROM_NAME = Deno.env.get('FROM_NAME') || 'LifePilot'
 
 interface EmailData {
   to: string;

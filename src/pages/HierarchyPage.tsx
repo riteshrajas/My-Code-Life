@@ -314,9 +314,9 @@ const HierarchyPage: React.FC = () => {
         </Card>      ) : (
         <DragDropContext onDragEnd={handleDragEnd}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-            {hierarchyCategories.map((category) => (
+            {hierarchyCategories.map((category, index) => (
               <Card 
-                key={category.id}
+                key={`${category.id}-${index}`} // Ensure unique key by combining id and index
                 className="overflow-hidden border-t-4"
                 style={{ borderTopColor: category.color }}
               >

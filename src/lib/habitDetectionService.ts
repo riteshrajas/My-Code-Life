@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import supabase from './supabaseClient';
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+const apiKey = "AIzaSyDD7DLIg_k_RB7m13knouKclUMGJzYAP98";
 const genAI = new GoogleGenerativeAI(apiKey);
 
 export interface DetectedHabit {

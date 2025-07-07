@@ -373,7 +373,7 @@ const DashboardPage = () => {
           {/* Dashboard Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 sticky top-0 bg-background/95 backdrop-blur-sm pb-4 z-10">
             <div>
-              <h1 className="text-3xl font-bold">My Life Code</h1>
+              <h1 className="text-3xl font-bold">LifePilot</h1>
               <p className="text-muted-foreground mt-1">
                 Three powerful rules to guide your journey
               </p>
@@ -436,7 +436,7 @@ const DashboardPage = () => {
             <CardContent>
               <div className="space-y-3">
                 {stats.ruleDistribution.map((count, idx) => (
-                  <div key={idx} className="space-y-1">
+                  <div key={`rule-${idx}`} className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-medium">Rule {idx + 1}</span>
                       <span className="text-muted-foreground">{count} tasks</span>

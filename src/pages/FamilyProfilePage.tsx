@@ -245,7 +245,7 @@ const FamilyProfilePage: React.FC = () => {
                   </Label>
                   <div className="flex flex-wrap gap-2">
                     {familyMember.hobbies.map((hobby, index) => (
-                      <Badge key={index} variant="secondary" className="flex items-center gap-1 bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700 border border-purple-200 px-2 sm:px-3 py-1 text-xs sm:text-sm">
+                      <Badge key={`${hobby}-${index}`} variant="secondary" className="flex items-center gap-1 bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700 border border-purple-200 px-2 sm:px-3 py-1 text-xs sm:text-sm">
                         <Heart className="w-2 h-2 sm:w-3 sm:h-3" />
                         {hobby}
                       </Badge>

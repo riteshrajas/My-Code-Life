@@ -38,7 +38,7 @@ export const sendAccountDeletionEmail = async (
   userData: any,
   summary: any
 ) => {
-  const userEmailSubject = `🔐 Your My Life Code Account Data Backup - Safe & Ready for Return`;
+  const userEmailSubject = `🔐 Your LifePilot Account Data Backup - Safe & Ready for Return`;
   
   const userEmailHtml = `
     <!DOCTYPE html>
@@ -116,7 +116,7 @@ export const sendAccountDeletionEmail = async (
       <div class="content">
         <p>Hi there! 👋</p>
         
-        <p>If you're reading this email, it means your <strong>My Life Code</strong> account has been successfully deleted as requested.</p>
+        <p>If you're reading this email, it means your <strong>LifePilot</strong> account has been successfully deleted as requested.</p>
 
         <div class="stats">
           <h3>🛡️ Your Data Backup Summary</h3>
@@ -140,7 +140,7 @@ export const sendAccountDeletionEmail = async (
 
         <div class="restore-steps">
           <h3>🚀 Want to Come Back?</h3>
-          <p>Life changes, and so do minds! If you ever decide to return to My Life Code:</p>
+          <p>Life changes, and so do minds! If you ever decide to return to LifePilot:</p>
           <ol>
             <li>Create a new account at <a href="https://mylifecode.vercel.app">mylifecode.vercel.app</a></li>
             <li>Go to <strong>Settings → Data & Privacy → Import Data</strong></li>
@@ -156,7 +156,7 @@ export const sendAccountDeletionEmail = async (
         <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
           <p><strong>💝 Thank You</strong></p>
           <p>Thank you for being part of our community. While we're sad to see you go, we respect your decision and hope our paths cross again someday.</p>
-          <p><strong>Stay awesome!</strong><br>The My Life Code Team</p>
+          <p><strong>Stay awesome!</strong><br>The LifePilot Team</p>
         </div>
       </div>
 
@@ -170,7 +170,7 @@ export const sendAccountDeletionEmail = async (
 
   const userEmailText = `Hi there!
 
-If you're reading this email, it means your My Life Code account has been successfully deleted as requested.
+If you're reading this email, it means your LifePilot account has been successfully deleted as requested.
 
 Your Data Backup Summary:
 - Diary Entries: ${summary.total_diary_entries} entries
@@ -179,7 +179,7 @@ Your Data Backup Summary:
 - Account Age: ${summary.account_age_days} days
 
 Want to Come Back?
-Life changes, and so do minds! If you ever decide to return to My Life Code:
+Life changes, and so do minds! If you ever decide to return to LifePilot:
 
 1. Create a new account at https://mylifecode.vercel.app
 2. Go to Settings → Data & Privacy → Import Data
@@ -194,7 +194,7 @@ Thank You
 Thank you for being part of our community. While we're sad to see you go, we respect your decision and hope our paths cross again someday.
 
 Stay awesome!
-The My Life Code Team
+The LifePilot Team
 
 ---
 This is an automated message. Your account and all associated data have been permanently deleted from our servers.`;
@@ -443,8 +443,8 @@ export const deleteUserAccount = async (userId: string, userEmail: string) => {
     }
 
     // Use the same URL and key from supabaseClient
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const supabaseUrl = "https://tjpaxrhqikqlhhvbzzyw.supabase.co";
+    const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqcGF4cmhxaWtxbGhodmJ6enl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc1ODczMDMsImV4cCI6MjA2MzE2MzMwM30.MfNDGS-GnfQq6nVMZ_cCsOqMiQHRgYdtOU7oteGastI";
 
     const response = await fetch(`${supabaseUrl}/functions/v1/delete-user`, {
       method: 'POST',

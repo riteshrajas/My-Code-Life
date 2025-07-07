@@ -24,7 +24,7 @@ const LoginPage: React.FC = () => {
   return (
     <div className="flex justify-center items-center min-h-screen bg-background">
       <div className="w-full max-w-md p-8 space-y-6 bg-card shadow-xl rounded-lg">
-        <h1 className="text-2xl font-bold text-center text-foreground">Login to My Life Code</h1>
+        <h1 className="text-2xl font-bold text-center text-foreground">Login to LifePilot</h1>
         <p className="text-center text-muted-foreground">
           Login with Passkey (biometrics) or fallback credentials.<br />
           <span className="text-xs">Email: <b>testing@test.com</b> | Password: <b>test</b></span>
