@@ -1,27 +1,19 @@
 // Config for Gemini API
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory, GenerativeModel, ChatSession } from '@google/generative-ai';
-
+import process from 'process';
 // Use environment variable for API key instead of hardcoding it
 export const MODEL_NAME = 'gemini-2.0-flash'; // Using the Gemini 2.0 Flash model
 
 // Create a singleton instance of the Gemini API client
 let geminiClient: GoogleGenerativeAI | null = null;
 
-// Helper function to check if API key is configured
-export function isApiKeyConfigured(): boolean {
-  return Boolean("AIzaSyDD7DLIg_k_RB7m13knouKclUMGJzYAP98") && "AIzaSyDD7DLIg_k_RB7m13knouKclUMGJzYAP98".length > 0;
-}
-
 // Get or create the Gemini API client
 export function getGeminiClient(): GoogleGenerativeAI | null {
-  if (!isApiKeyConfigured()) {
-    console.error('Gemini API key is not configured');
-    return null;
-  }
+
   
   if (!geminiClient) {
     try {
-      geminiClient = new GoogleGenerativeAI("AIzaSyDD7DLIg_k_RB7m13knouKclUMGJzYAP98");
+      geminiClient = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY );
     } catch (error) {
       console.error('Error initializing Gemini API client:', error);
       return null;
@@ -628,7 +620,8 @@ For advice requests, use this JSON format:
     try {
       const result = await this.chatSession.sendMessage(userMessage);
       const text = result.response.text();
-      
+      console.log('Gemini response:', text);
+
       // Check if it's a casual conversation response (plain text)
       if (!text.includes('{') && !text.includes('"type"')) {
         // Plain text response for casual conversation

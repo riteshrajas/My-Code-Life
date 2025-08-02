@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 let genAI: GoogleGenerativeAI | null = null;
 
-  genAI = new GoogleGenerativeAI("AIzaSyDD7DLIg_k_RB7m13knouKclUMGJzYAP98");
+  genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
 
 interface VoiceAnalysisResult {

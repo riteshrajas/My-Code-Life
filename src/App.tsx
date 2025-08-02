@@ -21,6 +21,13 @@ const ProtectedRoute = () => {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  console.log('Environment variables loaded:', {
+    supabaseUrl: import.meta.env.VITE_SUPABASE_URL ? '✅ Loaded' : '❌ Missing',
+    supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Loaded' : '❌ Missing',
+    baseUrl: import.meta.env.VITE_BACKEND_URL ? '✅ Loaded' : '❌ Missing',
+    geminiapiKey: import.meta.env.VITE_GEMINI_API_KEY ? '✅ Loaded' : '❌ Missing',
+  });
+
   useEffect(() => {
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
