@@ -10,10 +10,31 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'), // Ensure this points to your src directory
     },
   },
-  // server: { // Optional: configure server options if needed
-  //   port: 3000, 
-  // },
-  // build: { // Optional: configure build options if needed
-  //   outDir: 'dist',
-  // }
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split vendor libraries into separate chunks
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs', '@radix-ui/react-select'],
+          'vendor-supabase': ['@supabase/supabase-js', '@supabase/auth-ui-react'],
+          'vendor-google': ['@google/generative-ai'],
+          'vendor-utils': ['clsx', 'tailwind-merge', 'date-fns', 'framer-motion', 'lucide-react']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 600,
+    sourcemap: false, // Disable sourcemaps in production for smaller build
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console.log in production
+        drop_debugger: true
+      }
+    }
+  },
+  server: {
+    port: 5173,
+    host: true // Allow network access
+  }
 });
