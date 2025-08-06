@@ -26,6 +26,9 @@ const ProtectedRoute = () => {
     supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Loaded' : '❌ Missing',
     baseUrl: import.meta.env.VITE_BACKEND_URL ? '✅ Loaded' : '❌ Missing',
     geminiapiKey: import.meta.env.VITE_GEMINI_API_KEY ? '✅ Loaded' : '❌ Missing',
+    mode: import.meta.env.MODE,
+    dev: import.meta.env.DEV,
+    prod: import.meta.env.PROD,
   });
 
   useEffect(() => {
