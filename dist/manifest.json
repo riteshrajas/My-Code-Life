@@ -1,0 +1,21 @@
+{
+  "name": "LifePilot",
+  "short_name": "LifePilot",
+  "description": "Your Personal Life Journey and AI Assistant",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#8b5cf6",
+  "icons": [
+    {
+      "src": "/assets/image.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/image.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
