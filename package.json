@@ -8,7 +8,7 @@
     "preview": "vite preview",
     "start": "vite",
     "serve": "vite preview",
-    "deploy:cloudflare": "npm run build && wrangler pages deploy dist --project-name stage-app",
+    "deploy:cloudflare": "npm run build && wrangler pages deploy dist --project-name life-pilot",
     "deploy:auto": "node -e \"require('child_process').execSync(process.platform === 'win32' ? 'powershell -ExecutionPolicy Bypass -File scripts/deploy-cloudflare-auto.ps1' : 'bash scripts/deploy-cloudflare-auto.sh', {stdio: 'inherit'})\""
   },
   "dependencies": {
